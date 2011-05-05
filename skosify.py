@@ -645,38 +645,32 @@ def check_labels(rdf):
          (conc, label, label.language))
     rdf.remove((conc, SKOS.hiddenLabel, label))
   
+
+def check_hierarchy_visit(rdf, node, parent, status):
+  if status.get(node) is None:
+    status[node] = 1 # entered
+    for child in rdf.subjects(SKOS.broader, node):
+      check_hierarchy_visit(rdf, child, node, status)
+  elif status.get(node) == 1: # has been entered but not yet done
+    warn("Hierarchy loop removed at %s -> %s" % (localname(parent), localname(node)))
+    rdf.remove((node, SKOS.broader, parent))
+    rdf.remove((node, SKOS.broaderTransitive, parent))
+    rdf.remove((node, SKOSEXT.broaderGeneric, parent))
+    rdf.remove((node, SKOSEXT.broaderPartitive, parent))
+    rdf.remove((parent, SKOS.narrower, node))
+    rdf.remove((parent, SKOS.narrowerTransitive, node))
+  elif status.get(node) == 2: # is completed already
+    pass
+  status[node] = 2 # set this node as completed
+
 def check_hierarchy(rdf):
   # check for cycles in the skos:broader hierarchy
-  # FIXME this doesn't work. finished[res] is never set True.
-  # Should this be changed to a recursive algorithm?
+  # using a recursive depth first search algorithm
   starttime = time.time()
 
-  # This is almost a non-recursive breadth-first search algorithm, but a set
-  # is used as the "open" set instead of a FIFO, and an arbitrary element of
-  # the set is searched. This is slightly faster than DFS (using a stack)
-  # and much faster than BFS (using a FIFO).
   top_concepts = rdf.subject_objects(SKOS.hasTopConcept)
-  finished = {}			# state of concept: True for finished
-  to_search = list(top_concepts) # stack of edges (parent,child) to investigate
-  
-  while len(to_search) > 0:
-    parent,res = to_search.pop()
-    if res in finished:
-      if finished[res] == True:
-        continue
-      else:
-        # we found a loop!
-        warn("Hierarchy loop removed at %s -> %s" % (localname(parent), localname(res)))
-        rdf.remove((res, SKOS.broader, parent))
-        rdf.remove((res, SKOS.broaderTransitive, parent))
-        rdf.remove((res, SKOSEXT.broaderGeneric, parent))
-        rdf.remove((res, SKOSEXT.broaderPartitive, parent))
-        rdf.remove((parent, SKOS.narrower, res))
-        rdf.remove((parent, SKOS.narrowerTransitive, res))
-        continue
-    finished[res] = False
-    for child in rdf.subjects(SKOS.broader, res):
-      to_search.append((res,child))
+  for cs,root in top_concepts:
+    check_hierarchy_visit(rdf, root, None, status={})
 
   endtime = time.time()
   
