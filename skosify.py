@@ -28,7 +28,7 @@ from setstore import IOMemory
 
 # namespace defs
 SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
-SKOSEXT = Namespace("http://schema.onki.fi/skosext/")
+SKOSEXT = Namespace("http://purl.org/finnonto/schema/skosext#")
 OWL = Namespace("http://www.w3.org/2002/07/owl#")
 DC = Namespace("http://purl.org/dc/elements/1.1/")
 
