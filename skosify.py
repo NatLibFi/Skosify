@@ -277,7 +277,14 @@ def create_concept_scheme(rdf, ns, lname='conceptscheme'):
   
   if ont is not None:
     rdf.remove((ont, RDF.type, OWL.Ontology))
-    # move all the properties (dc:title etc.) of the owl:Ontology into the skos:ConceptScheme
+    # remove owl:imports declarations
+    for o in rdf.objects(ont, OWL.imports):
+      rdf.remove((ont, OWL.imports, o))
+    # remove protege specific properties
+    for p,o in rdf.predicate_objects(ont):
+      if p.startswith(URIRef('http://protege.stanford.edu/plugins/owl/protege#')):
+        rdf.remove((ont,p,o))
+    # move remaining properties (dc:title etc.) of the owl:Ontology into the skos:ConceptScheme
     replace_uri(rdf, ont, cs)
     
   return cs
