@@ -311,7 +311,23 @@ def infer_classes(rdf):
   
 
 def infer_properties(rdf):
-  pass
+  """Do RDFS subproperty inference: add superproperties where subproperties have been used."""
+
+  debug("doing RDFS subproperty inference")
+  # find out the subproperty mappings
+  superprops = {}	# key: property val: set([superprop1, superprop2..])
+  for s,o in rdf.subject_objects(RDFS.subPropertyOf):
+    superprops.setdefault(s, set())
+    for sp in rdf.transitive_objects(s, RDFS.subPropertyOf):
+      if sp != s:
+        superprops[s].add(sp)
+  
+  # add the superproperty relationships
+  for p,sps in superprops.iteritems():
+    debug("setting superproperties: %s -> %s" % (p, str(sps)))
+    for s,o in rdf.subject_objects(p):
+      for sp in sps:
+        rdf.add((s,sp,o))
   
 
 def transform_concepts(rdf, cs):
