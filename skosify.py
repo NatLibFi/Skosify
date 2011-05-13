@@ -736,6 +736,9 @@ def skosify(inputfile, informat, outputfile, outformat, namespace, do_narrower, 
   inputtime = time.time()
 
   # Stage 2: Process
+  if do_infer:
+    infer_classes(voc)
+    infer_properties(voc)
 
   setup_namespaces(voc)
   
@@ -743,10 +746,6 @@ def skosify(inputfile, informat, outputfile, outformat, namespace, do_narrower, 
   cs = get_concept_scheme(voc)
   if not cs:
     cs = create_concept_scheme(voc, namespace)
-
-  if do_infer:
-    infer_classes(voc)
-    infer_properties(voc)
 
   # transform concepts, literals and concept relations
   transform_concepts(voc, cs)
