@@ -35,11 +35,11 @@ DC = Namespace("http://purl.org/dc/elements/1.1/")
 # default values for config file / command line options
 DEFAULT_OPTIONS = {
   'output': '-',
-  'informat': None,
-  'outformat': None,
+  'from_format': None,
+  'to_format': None,
   'narrower': False,
   'transitive': False,
-  'rmaggregated': False,
+  'remove_aggregates': False,
   'namespace': None,
   'debug': False,
   'infer': False,
@@ -812,15 +812,15 @@ def get_option_parser(defaults):
   # e.g. skosify yso.owl -o yso-skos.rdf
   parser = optparse.OptionParser()
   parser.set_defaults(**defaults)
-  parser.add_option('-o', '--output', type='string', dest='output', help='Output file name. Default is "-" (stdout).')
-  parser.add_option('-f', '--from-format', type='string', dest='informat', help='Input format. Default is to detect format based on file extension. Possible values: xml, n3, turtle, nt...')
-  parser.add_option('-t', '--to-format', type='string', dest='outformat', help='Output format. Default is to detect format based on file extension. Possible values: xml, n3, turtle, nt...')
-  parser.add_option('-N', '--narrower', action="store_true", dest='narrower', help='Include narrower/narrowerGeneric/narrowerPartitive relationships in the output vocabulary.')
-  parser.add_option('-T', '--transitive', action="store_true", dest='transitive', help='Include transitive hierarchy relationships in the output vocabulary.')
-  parser.add_option('-a', '--remove-aggregates', action="store_true", dest='rmaggregates', help='Remove AggregateConcepts completely from the output vocabulary.')
-  parser.add_option('-n', '--namespace', type='string', dest='namespace', help='Namespace of vocabulary (usually optional; used to create a ConceptScheme)')
-  parser.add_option('-d', '--debug', action="store_true", dest='debug', help='Show debug output')
-  parser.add_option('-i', '--infer', action="store_true", dest='infer', help='Do RDFS subclass/subproperty inference before transforming input.')
+  parser.add_option('-o', '--output', type='string', help='Output file name. Default is "-" (stdout).')
+  parser.add_option('-f', '--from-format', type='string', help='Input format. Default is to detect format based on file extension. Possible values: xml, n3, turtle, nt...')
+  parser.add_option('-t', '--to-format', type='string', help='Output format. Default is to detect format based on file extension. Possible values: xml, n3, turtle, nt...')
+  parser.add_option('-N', '--narrower', action="store_true", help='Include narrower/narrowerGeneric/narrowerPartitive relationships in the output vocabulary.')
+  parser.add_option('-T', '--transitive', action="store_true", help='Include transitive hierarchy relationships in the output vocabulary.')
+  parser.add_option('-a', '--remove-aggregates', action="store_true", help='Remove AggregateConcepts completely from the output vocabulary.')
+  parser.add_option('-n', '--namespace', type='string', help='Namespace of vocabulary (usually optional; used to create a ConceptScheme)')
+  parser.add_option('-d', '--debug', action="store_true", help='Show debug output')
+  parser.add_option('-i', '--infer', action="store_true", help='Do RDFS subclass/subproperty inference before transforming input.')
   
   return parser
 
@@ -835,9 +835,9 @@ def main():
   else:
     inputfile = '-'
 
-  skosify(inputfile, options.informat, options.output, options.outformat,
+  skosify(inputfile, options.from_format, options.output, options.to_format,
           options.namespace, options.narrower, options.transitive,
-          options.rmaggregates, options.infer, options.debug)
+          options.remove_aggregates, options.infer, options.debug)
 
   
   
