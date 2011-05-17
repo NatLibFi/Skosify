@@ -672,18 +672,18 @@ def write_output(rdf, filename, fmt):
 
   rdf.serialize(destination=out, format=fmt)
 
-def skosify(inputfile, namespaces, typemap, literalmap, relationmap, informat, outputfile, outformat, namespace, do_narrower, do_transitive, rm_aggregates, do_infer, do_debug):
+def skosify(inputfile, namespaces, typemap, literalmap, relationmap, options):
   global debugging
-  debugging = do_debug
+  debugging = options.debug
 
   starttime = time.time()
 
   # Stage 1: Read input
-  voc = read_input(inputfile, informat)
+  voc = read_input(inputfile, options.from_format)
   inputtime = time.time()
 
   # Stage 2: Process
-  if do_infer:
+  if options.infer:
     infer_classes(voc)
     infer_properties(voc)
 
@@ -692,7 +692,7 @@ def skosify(inputfile, namespaces, typemap, literalmap, relationmap, informat, o
   # find/create concept scheme
   cs = get_concept_scheme(voc)
   if not cs:
-    cs = create_concept_scheme(voc, namespace)
+    cs = create_concept_scheme(voc, options.namespace)
 
   # transform concepts, literals and concept relations
   transform_concepts(voc, cs, typemap)
@@ -701,10 +701,10 @@ def skosify(inputfile, namespaces, typemap, literalmap, relationmap, informat, o
 
   # special transforms for collections and aggregate concepts
   transform_collections(voc)
-  transform_aggregate_concepts(voc, cs, relationmap, rm_aggregates)
+  transform_aggregate_concepts(voc, cs, relationmap, options.remove_aggregates)
 
   # enrichments: broader <-> narrower, related <-> related
-  enrich_relations(voc, do_narrower, do_transitive)
+  enrich_relations(voc, options.narrower, options.transitive)
 
   # clean up unused/unnecessary class/property definitions and unreachable triples
   cleanup_properties(voc)
@@ -726,12 +726,12 @@ def skosify(inputfile, namespaces, typemap, literalmap, relationmap, informat, o
 
   # Stage 3: Write output
   
-  write_output(voc, outputfile, outformat)
+  write_output(voc, options.output, options.to_format)
   endtime = time.time()
 
   debug("reading input file %s took  %d seconds" % (inputfile, inputtime - starttime))
   debug("processing took             %d seconds" % (processtime - inputtime))
-  debug("writing output file %s took %d seconds" % (outputfile, endtime-processtime))
+  debug("writing output file %s took %d seconds" % (options.output, endtime-processtime))
   debug("total time taken:           %d seconds" % (endtime - starttime))
 
 
@@ -835,11 +835,7 @@ def main():
   else:
     inputfile = '-'
 
-  skosify(inputfile, namespaces, typemap, literalmap, relationmap,
-          options.from_format, options.output, options.to_format,
-          options.namespace, options.narrower, options.transitive,
-          options.remove_aggregates, options.infer, options.debug)
-
+  skosify(inputfile, namespaces, typemap, literalmap, relationmap, options)
   
   
 if __name__ == '__main__':
