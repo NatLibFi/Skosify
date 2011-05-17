@@ -821,6 +821,7 @@ def get_option_parser(defaults):
   parser.add_option('-n', '--namespace', type='string', help='Namespace of vocabulary (usually optional; used to create a ConceptScheme)')
   parser.add_option('-d', '--debug', action="store_true", help='Show debug output')
   parser.add_option('-i', '--infer', action="store_true", help='Do RDFS subclass/subproperty inference before transforming input.')
+  parser.add_option('-c', '--config', type='string', help='Read default options and transformation definitions from the given configuration file.')
   
   return parser
 
@@ -828,8 +829,26 @@ def get_option_parser(defaults):
 def main():
   """Read command line parameters and make a transform based on them"""
 
-  parser = get_option_parser(DEFAULT_OPTIONS)
-  (options, remainingArgs) = parser.parse_args()
+  defaults = DEFAULT_OPTIONS
+  options, remainingArgs = get_option_parser(defaults).parse_args()
+
+  if options.config is not None:
+    # read the supplied configuration file
+    import ConfigParser
+    cfgparser = ConfigParser.SafeConfigParser()
+    cfgparser.read(options.config)
+    for opt, val in cfgparser.items('options'):
+      if opt not in defaults:
+        warn('Unknown option in configuration file: %s (ignored)' % opt)
+        continue
+      if defaults[opt] in (True, False): # is a Boolean option
+        defaults[opt] = cfgparser.getboolean('options', opt)
+      else:
+        defaults[opt] = val
+    
+    # re-initialize and re-run OptionParser using defaults read from configuration file
+    options, remainingArgs = get_option_parser(defaults).parse_args()
+
   if remainingArgs:
     inputfile = remainingArgs[0]
   else:
