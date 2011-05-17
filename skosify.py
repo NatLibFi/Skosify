@@ -52,7 +52,7 @@ DEFAULT_OPTIONS = {
   'output': '-',
   'from_format': None,
   'to_format': None,
-  'narrower': False,
+  'narrower': True,
   'transitive': False,
   'remove_aggregates': False,
   'namespace': None,
