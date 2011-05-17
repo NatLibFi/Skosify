@@ -32,6 +32,20 @@ SKOSEXT = Namespace("http://purl.org/finnonto/schema/skosext#")
 OWL = Namespace("http://www.w3.org/2002/07/owl#")
 DC = Namespace("http://purl.org/dc/elements/1.1/")
 
+# default values for config file / command line options
+DEFAULT_OPTIONS = {
+  'output': '-',
+  'informat': None,
+  'outformat': None,
+  'narrower': False,
+  'transitive': False,
+  'rmaggregated': False,
+  'namespace': None,
+  'debug': False,
+  'infer': False,
+}
+
+
 # define what to do with types
 # key: URIref, or localname (string)
 # value: URIRef, or None (to delete the instances)
@@ -788,22 +802,33 @@ def skosify(inputfile, informat, outputfile, outformat, namespace, do_narrower, 
   debug("total time taken:           %d seconds" % (endtime - starttime))
 
 
-def main():
-  """Read command line parameters and make a transform based on them"""
-  import optparse
+def get_option_parser(defaults):
+  """Create and return an OptionParser with the given defaults"""
+  # based on recipe from: http://stackoverflow.com/questions/1880404/using-a-file-to-store-optparse-arguments
 
+  import optparse
+  
   # process command line parameters
   # e.g. skosify yso.owl -o yso-skos.rdf
   parser = optparse.OptionParser()
-  parser.add_option('-o', '--output', type='string', dest='output', default='-', help='Output file name. Default is "-" (stdout).')
-  parser.add_option('-f', '--from-format', type='string', dest='informat', default='', help='Input format. Default is to detect format based on file extension. Possible values: xml, n3, turtle, nt...')
-  parser.add_option('-t', '--to-format', type='string', dest='outformat', default='', help='Output format. Default is to detect format based on file extension. Possible values: xml, n3, turtle, nt...')
-  parser.add_option('-N', '--narrower', action="store_true", dest='narrower', default=False, help='Include narrower/narrowerGeneric/narrowerPartitive relationships in the output vocabulary.')
-  parser.add_option('-T', '--transitive', action="store_true", dest='transitive', default=False, help='Include transitive hierarchy relationships in the output vocabulary.')
-  parser.add_option('-a', '--remove-aggregates', action="store_true", dest='rmaggregates', default=False, help='Remove AggregateConcepts completely from the output vocabulary.')
+  parser.set_defaults(**defaults)
+  parser.add_option('-o', '--output', type='string', dest='output', help='Output file name. Default is "-" (stdout).')
+  parser.add_option('-f', '--from-format', type='string', dest='informat', help='Input format. Default is to detect format based on file extension. Possible values: xml, n3, turtle, nt...')
+  parser.add_option('-t', '--to-format', type='string', dest='outformat', help='Output format. Default is to detect format based on file extension. Possible values: xml, n3, turtle, nt...')
+  parser.add_option('-N', '--narrower', action="store_true", dest='narrower', help='Include narrower/narrowerGeneric/narrowerPartitive relationships in the output vocabulary.')
+  parser.add_option('-T', '--transitive', action="store_true", dest='transitive', help='Include transitive hierarchy relationships in the output vocabulary.')
+  parser.add_option('-a', '--remove-aggregates', action="store_true", dest='rmaggregates', help='Remove AggregateConcepts completely from the output vocabulary.')
   parser.add_option('-n', '--namespace', type='string', dest='namespace', help='Namespace of vocabulary (usually optional; used to create a ConceptScheme)')
-  parser.add_option('-d', '--debug', action="store_true", dest='debug', default=False, help='Show debug output')
-  parser.add_option('-i', '--infer', action="store_true", dest='infer', default=False, help='Do RDFS subclass/subproperty inference before transforming input.')
+  parser.add_option('-d', '--debug', action="store_true", dest='debug', help='Show debug output')
+  parser.add_option('-i', '--infer', action="store_true", dest='infer', help='Do RDFS subclass/subproperty inference before transforming input.')
+  
+  return parser
+
+
+def main():
+  """Read command line parameters and make a transform based on them"""
+
+  parser = get_option_parser(DEFAULT_OPTIONS)
   (options, remainingArgs) = parser.parse_args()
   if remainingArgs:
     inputfile = remainingArgs[0]
