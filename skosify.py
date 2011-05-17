@@ -19,9 +19,13 @@ except ImportError:
 try:
   # rdflib 2.4.x simple Graph
   from rdflib.Graph import Graph
+  RDFNS = RDF.RDFNS
+  RDFSNS = RDFS.RDFSNS
 except ImportError:
   # rdflib 3.0.0 Graph
   from rdflib import Graph
+  RDFNS = RDF.uri
+  RDFSNS = RDFS.uri
 
 # use custom memory-saving context-aware Store implementation
 from setstore import IOMemory
@@ -31,6 +35,17 @@ SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
 SKOSEXT = Namespace("http://purl.org/finnonto/schema/skosext#")
 OWL = Namespace("http://www.w3.org/2002/07/owl#")
 DC = Namespace("http://purl.org/dc/elements/1.1/")
+DCT = Namespace("http://purl.org/dc/terms/")
+
+# default namespaces to register in the graph
+DEFAULT_NAMESPACES = {
+  'rdf': RDFNS,
+  'rdfs': RDFSNS,
+  'owl': OWL,
+  'skos': SKOS,
+  'dc': DC,
+  'dct': DCT,
+}
 
 # default values for config file / command line options
 DEFAULT_OPTIONS = {
@@ -46,92 +61,10 @@ DEFAULT_OPTIONS = {
 }
 
 
-# define what to do with types
-# key: URIref, or localname (string)
-# value: URIRef, or None (to delete the instances)
-# the <key> instances will be replaced with <value> instances
-# key may start with * which matches any prefix
-TYPES = {
-  'Concept':		SKOS.Concept,
-  'AggregateConcept':	SKOS.Concept,
-  '*Concept':		SKOS.Concept,
-  '*concept':		SKOS.Concept,
-  'SUOPlace':		SKOS.Concept,
-  'GNSPlace':		SKOS.Concept,
-  'GroupConcept':	SKOS.Collection,
-  '*GroupConcept':	SKOS.Collection,
-  '*groupConcept':	SKOS.Collection,
-  'StructuringClass':	None,
-}
-
-
-# define what to do with literal properties on Concepts
-# key: URIref, or localname (string)
-# value: URIRef, or None (to delete the property)
-# the <key> properties will be replaced with <value> properties
-# key may start with * which matches any prefix
-LITERALS = {
-  'prefLabel':		SKOS.prefLabel,
-  RDFS.label:		SKOS.prefLabel,	# TAO and VALO use this
-  'ctx':		SKOS.prefLabel,	# AFO uses this
-  'altLabel':		SKOS.altLabel,
-  'oldLabel':		SKOS.altLabel,
-  'fte':		SKOS.altLabel,	# AFO uses this for English labels (may be more than 1)
-  'agx':		SKOS.altLabel,	# AFO uses this for English Agrovoc label
-  'hiddenLabel':	SKOS.hiddenLabel,
-  'note':		SKOS.note,
-  'editorialNote':	SKOS.note,
-  'comment':		SKOS.note,
-  'ysaComment':		SKOS.note,
-  'description':	SKOS.note,	# MAO uses this
-  'tempLabel':		None,		# old YSO uses this
-  'semanticTag':	None,
-  'semanticSvTag':	None,
-  'semTag':		None,
-  'semSvTag':		None,
-  'overlaps':		None,
-  'overlappedBy':	None,
-  'overlapsDefinition':	None,
-  'overlappedByDefinition':	None,
-  'ysaSource':		DC.source,
-  'ysoSource':		DC.source,
-  'allsoSource':	DC.source,
-  'source':		DC.source,	# VALO uses this
-  'eiYsa':		None,
-  'order':		None,
-  'creator':		DC.creator,	# MAO uses this
-  'date':		DC.date,	# MAO uses this
-}
-
-# define what to do with relation properties on Concepts
-# key: URIref, or localname (string)
-# value: URIRef, or None (to delete the property)
-# the <key> properties will be replaced with <value> properties
-# key may start with * which matches any prefix
-RELATIONS = {
-  RDFS.subClassOf:	SKOSEXT.broaderGeneric,
-  OWL.equivalentClass:	SKOS.exactMatch,
-  'definedConcept':	SKOS.exactMatch,
-  'partOf':		SKOSEXT.broaderPartitive,
-  'broaderGeneric':	SKOSEXT.broaderGeneric,
-  'broaderPartitive': 	SKOSEXT.broaderPartitive,
-  'exactMatch':		SKOSEXT.exactMatch,
-  'related':		SKOS.related,
-  'associativeRelation':	SKOS.related,
-  'uusiAssociativeRelation':	SKOS.related,
-  'RT':			SKOS.related,	# TAO uses this
-  'LT':			None,		# TAO uses this
-  'ST':			None,		# TAO uses this
-  u'KÄYTÄ':		None,		# TAO uses this
-  'narrower_term':	None,		# MAO uses this
-  'broader_term':	None,		# MAO uses this
-  'actuality':		SKOS.related,	# VALO uses this
-}
 
 
 # global flag for debugging
 debugging = False
-
 
 
 
@@ -261,9 +194,9 @@ def read_input(filename, fmt):
   rdf.parse(f, format=fmt)
   return rdf
 
-def setup_namespaces(rdf):
-  rdf.namespace_manager.bind('skos', SKOS)
-  rdf.namespace_manager.bind('skosext', SKOSEXT)
+def setup_namespaces(rdf, namespaces):
+  for prefix, uri in namespaces.items():
+    rdf.namespace_manager.bind(prefix, uri)
 
 def get_concept_scheme(rdf):
   """Return a skos:ConceptScheme contained in the model, or None if not present."""
@@ -344,18 +277,18 @@ def infer_properties(rdf):
         rdf.add((s,sp,o))
   
 
-def transform_concepts(rdf, cs):
+def transform_concepts(rdf, cs, typemap):
   """Transform YSO-style Concepts into skos:Concepts, GroupConcepts into skos:Collections and AggregateConcepts into ...what?"""
-  
+
   # find out all the types used in the model
   types = set()
   for s,o in rdf.subject_objects(RDF.type):
-    if in_general_ns(o): continue
+    if o not in typemap and in_general_ns(o): continue
     types.add(o)
 
   for t in types:
-    if mapping_match(t, TYPES):
-      newval = mapping_get(t, TYPES)
+    if mapping_match(t, typemap):
+      newval = mapping_get(t, typemap)
       debug("transform class %s -> %s" % (t, newval))
       if newval is None: # delete all instances
         for inst in rdf.subjects(RDF.type, t):
@@ -367,7 +300,7 @@ def transform_concepts(rdf, cs):
       warn("Don't know what to do with type %s" % t)
       
 
-def transform_literals(rdf):
+def transform_literals(rdf, literalmap):
   """Transform YSO-style labels and other literal properties of Concepts into SKOS equivalents."""
   
   affected_types = (SKOS.Concept, SKOS.Collection)
@@ -376,19 +309,19 @@ def transform_literals(rdf):
   for t in affected_types:
     for conc in rdf.subjects(RDF.type, t):
       for p,o in rdf.predicate_objects(conc):
-        if isinstance(o, Literal) and (p in LITERALS or not in_general_ns(p)):
+        if isinstance(o, Literal) and (p in literalmap or not in_general_ns(p)):
           props.add(p)
 
   for p in props:
-    if mapping_match(p, LITERALS):
-      newval = mapping_get(p, LITERALS)
+    if mapping_match(p, literalmap):
+      newval = mapping_get(p, literalmap)
       debug("transform literal %s -> %s" % (p, newval))
       replace_predicate(rdf, p, newval, subjecttypes=affected_types)
     else:
       warn("Don't know what to do with literal %s" % p)
       
 
-def transform_relations(rdf):
+def transform_relations(rdf, relationmap):
   """Transform YSO-style concept relations into SKOS equivalents."""
 
   affected_types = (SKOS.Concept, SKOS.Collection)
@@ -397,12 +330,12 @@ def transform_relations(rdf):
   for t in affected_types:
     for conc in rdf.subjects(RDF.type, t):
       for p,o in rdf.predicate_objects(conc):
-        if isinstance(o, (URIRef, BNode)) and (p in RELATIONS or not in_general_ns(p)):
+        if isinstance(o, (URIRef, BNode)) and (p in relationmap or not in_general_ns(p)):
           props.add(p)
   
   for p in props:
-    if mapping_match(p, RELATIONS):
-      newval = mapping_get(p, RELATIONS)
+    if mapping_match(p, relationmap):
+      newval = mapping_get(p, relationmap)
       debug("transform relation %s -> %s" % (p, newval))
       replace_predicate(rdf, p, newval, subjecttypes=affected_types)
     else:
@@ -440,7 +373,7 @@ def transform_collections(rdf):
              (localname(relProp), s, coll))
         rdf.remove((s, relProp, coll))
 
-def transform_aggregate_concepts(rdf, cs, remove_aggregates):
+def transform_aggregate_concepts(rdf, cs, relationmap, remove_aggregates):
   """Transform YSO-style AggregateConcepts into skos:Concepts within their
      own skos:ConceptScheme, linked to the regular concepts with
      SKOS.narrowMatch relationships. If remove_aggregates is True, remove
@@ -451,7 +384,7 @@ def transform_aggregate_concepts(rdf, cs, remove_aggregates):
 
   aggregate_concepts = []
 
-  relation = RELATIONS.get(OWL.equivalentClass, OWL.equivalentClass)
+  relation = relationmap.get(OWL.equivalentClass, OWL.equivalentClass)
   for conc, eq in rdf.subject_objects(relation):
     eql = rdf.value(eq, OWL.unionOf, None)
     if eql is None:
@@ -739,7 +672,7 @@ def write_output(rdf, filename, fmt):
 
   rdf.serialize(destination=out, format=fmt)
 
-def skosify(inputfile, informat, outputfile, outformat, namespace, do_narrower, do_transitive, rm_aggregates, do_infer, do_debug):
+def skosify(inputfile, namespaces, typemap, literalmap, relationmap, informat, outputfile, outformat, namespace, do_narrower, do_transitive, rm_aggregates, do_infer, do_debug):
   global debugging
   debugging = do_debug
 
@@ -754,7 +687,7 @@ def skosify(inputfile, informat, outputfile, outformat, namespace, do_narrower, 
     infer_classes(voc)
     infer_properties(voc)
 
-  setup_namespaces(voc)
+  setup_namespaces(voc, namespaces)
   
   # find/create concept scheme
   cs = get_concept_scheme(voc)
@@ -762,13 +695,13 @@ def skosify(inputfile, informat, outputfile, outformat, namespace, do_narrower, 
     cs = create_concept_scheme(voc, namespace)
 
   # transform concepts, literals and concept relations
-  transform_concepts(voc, cs)
-  transform_literals(voc)
-  transform_relations(voc) 
+  transform_concepts(voc, cs, typemap)
+  transform_literals(voc, literalmap)
+  transform_relations(voc, relationmap) 
 
   # special transforms for collections and aggregate concepts
   transform_collections(voc)
-  transform_aggregate_concepts(voc, cs, rm_aggregates)
+  transform_aggregate_concepts(voc, cs, relationmap, rm_aggregates)
 
   # enrichments: broader <-> narrower, related <-> related
   enrich_relations(voc, do_narrower, do_transitive)
@@ -825,10 +758,38 @@ def get_option_parser(defaults):
   
   return parser
 
+def expand_curielike(namespaces, curie):
+  """Expand a CURIE (or a CURIE-like string with a period instead of colon
+  as separator) into URIRef. If the provided curie is not a CURIE, return it
+  unchanged."""
+
+  if curie == '': return None
+  curie = curie.decode('UTF-8')
+
+  if curie.startswith('[') and curie.endswith(']'):
+    # decode SafeCURIE
+    curie = curie[1:-1]
+
+  if ':' in curie:
+    ns, localpart = curie.split(':', 1)
+  elif '.' in curie:
+    ns, localpart = curie.split('.', 1)
+  else:
+    return curie
+
+  if ns in namespaces:
+    return URIRef(namespaces[ns] + localpart)
+  else:
+    warn("Unknown namespace prefix %s" % ns)
+    return URIRef(curie)
 
 def main():
   """Read command line parameters and make a transform based on them"""
 
+  namespaces = DEFAULT_NAMESPACES
+  typemap = {}
+  literalmap = {}
+  relationmap = {}
   defaults = DEFAULT_OPTIONS
   options, remainingArgs = get_option_parser(defaults).parse_args()
 
@@ -836,7 +797,26 @@ def main():
     # read the supplied configuration file
     import ConfigParser
     cfgparser = ConfigParser.SafeConfigParser()
+    cfgparser.optionxform = str # force case-sensitive handling of option names
     cfgparser.read(options.config)
+
+    # parse namespaces from configuration file
+    for prefix, uri in cfgparser.items('namespaces'):
+      namespaces[prefix] = URIRef(uri)
+    
+    # parse types from configuration file
+    for key, val in cfgparser.items('types'):
+      typemap[expand_curielike(namespaces, key)] = expand_curielike(namespaces, val)
+
+    # parse literals from configuration file
+    for key, val in cfgparser.items('literals'):
+      literalmap[expand_curielike(namespaces, key)] = expand_curielike(namespaces, val)
+
+    # parse relations from configuration file
+    for key, val in cfgparser.items('relations'):
+      relationmap[expand_curielike(namespaces, key)] = expand_curielike(namespaces, val)
+
+    # parse options from configuration file
     for opt, val in cfgparser.items('options'):
       if opt not in defaults:
         warn('Unknown option in configuration file: %s (ignored)' % opt)
@@ -848,13 +828,15 @@ def main():
     
     # re-initialize and re-run OptionParser using defaults read from configuration file
     options, remainingArgs = get_option_parser(defaults).parse_args()
+    
 
   if remainingArgs:
     inputfile = remainingArgs[0]
   else:
     inputfile = '-'
 
-  skosify(inputfile, options.from_format, options.output, options.to_format,
+  skosify(inputfile, namespaces, typemap, literalmap, relationmap,
+          options.from_format, options.output, options.to_format,
           options.namespace, options.narrower, options.transitive,
           options.remove_aggregates, options.infer, options.debug)
 
