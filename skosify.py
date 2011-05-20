@@ -54,7 +54,7 @@ DEFAULT_OPTIONS = {
   'to_format': None,
   'narrower': True,
   'transitive': False,
-  'remove_aggregates': False,
+  'aggregates': False,
   'namespace': None,
   'debug': False,
   'infer': False,
@@ -373,13 +373,13 @@ def transform_collections(rdf):
              (localname(relProp), s, coll))
         rdf.remove((s, relProp, coll))
 
-def transform_aggregate_concepts(rdf, cs, relationmap, remove_aggregates):
+def transform_aggregate_concepts(rdf, cs, relationmap, aggregates):
   """Transform YSO-style AggregateConcepts into skos:Concepts within their
      own skos:ConceptScheme, linked to the regular concepts with
-     SKOS.narrowMatch relationships. If remove_aggregates is True, remove
+     SKOS.narrowMatch relationships. If aggregates is False, remove
      all aggregate concepts instead."""
 
-  if remove_aggregates:
+  if not aggregates:
     debug("removing aggregate concepts")
 
   aggregate_concepts = []
@@ -389,7 +389,7 @@ def transform_aggregate_concepts(rdf, cs, relationmap, remove_aggregates):
     eql = rdf.value(eq, OWL.unionOf, None)
     if eql is None:
       continue
-    if not remove_aggregates:
+    if aggregates:
       aggregate_concepts.append(conc)
       for item in rdf.items(eql):
         rdf.add((conc, SKOS.narrowMatch, item))
@@ -399,7 +399,7 @@ def transform_aggregate_concepts(rdf, cs, relationmap, remove_aggregates):
     rdf.remove((eq, OWL.unionOf, eql))
     # remove the rdf:List structure
     delete_uri(rdf, eql)
-    if remove_aggregates:
+    if not aggregates:
       delete_uri(rdf, conc)
   
   if len(aggregate_concepts) > 0:
@@ -701,7 +701,7 @@ def skosify(inputfile, namespaces, typemap, literalmap, relationmap, options):
 
   # special transforms for collections and aggregate concepts
   transform_collections(voc)
-  transform_aggregate_concepts(voc, cs, relationmap, options.remove_aggregates)
+  transform_aggregate_concepts(voc, cs, relationmap, options.aggregates)
 
   # enrichments: broader <-> narrower, related <-> related
   enrich_relations(voc, options.narrower, options.transitive)
