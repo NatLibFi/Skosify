@@ -1,3 +1,5 @@
+Skosify version 0.1
+
 SKOS converter for RDFS/OWL/SKOS vocabularies
 
 The program accepts a thesaurus-like vocabulary expressed as RDFS, OWL or
