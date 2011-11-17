@@ -1,5 +1,17 @@
 Skosify release notes
 
+v0.2 - 2011-11-17
+
+Added support for property skosext:candidateLabel. Label properties mapped
+to this will be converted to skos:prefLabel if one doesn't exist, but
+skos:altLabel if a prefLabel already exists (for the same concept, in the
+same language). This makes it possible to prefer some kind of labels, or
+labels from a particular source, when there may be many sources of labels.
+This is useful for combined ontologies such as TERO and LIITO, where the
+"same" concept may have different prefLabels from the different source
+vocabularies.
+
+
 v0.1 - 2011-05-25
 -----------------
 
