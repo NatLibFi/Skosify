@@ -341,6 +341,45 @@ def transform_relations(rdf, relationmap):
     else:
       warn("Don't know what to do with relation %s" % p)
 
+def transform_labels(rdf):
+  # fix labels with extra whitespace
+  for labelProp in (SKOS.prefLabel, SKOS.altLabel, SKOS.hiddenLabel, SKOSEXT.candidateLabel):
+    for conc, label in rdf.subject_objects(labelProp):
+      if len(label.strip()) < len(label):
+        warn("Stripping whitespace from label of %s: '%s'" % (conc, label))
+        newlabel = Literal(label.strip(), label.language)
+        rdf.remove((conc, labelProp, label))
+        rdf.add((conc, labelProp, newlabel))
+
+  # make skosext:candidateLabel either prefLabel or altLabel
+  
+  # make a set of (concept, language) tuples for concepts which have candidateLabels in some language
+  conc_lang = set([(c,l.language) for c,l in rdf.subject_objects(SKOSEXT.candidateLabel)])
+  for conc, lang in conc_lang:
+    # check whether there are already prefLabels for this concept in this language
+    if lang not in [pl.language for pl in rdf.objects(conc, SKOS.prefLabel)]:
+      # no -> let's transform the candidate labels into prefLabels
+      to_prop = SKOS.prefLabel
+    else:
+      # yes -> let's make them altLabels instead
+      to_prop = SKOS.altLabel
+    
+    # do the actual transform from candidateLabel to prefLabel or altLabel
+    for label in rdf.objects(conc, SKOSEXT.candidateLabel):
+      if label.language != lang: continue
+      rdf.remove((conc, SKOSEXT.candidateLabel, label))
+      rdf.add((conc, to_prop, label))
+  
+  
+  for conc, label in rdf.subject_objects(SKOSEXT.candidateLabel):
+    rdf.remove((conc, SKOSEXT.candidateLabel, label))
+    if label.language not in [pl.language for pl in rdf.objects(conc, SKOS.prefLabel)]:
+      # no prefLabel found, make this candidateLabel a prefLabel
+      rdf.add((conc, SKOS.prefLabel, label))
+    else:
+      # prefLabel found, make it an altLabel instead
+      rdf.add((conc, SKOS.altLabel, label))
+
 def transform_collections(rdf):
   for coll in rdf.subjects(RDF.type, SKOS.Collection):
     broaders = set(rdf.objects(coll, SKOSEXT.broaderGeneric))
@@ -574,15 +613,6 @@ def cleanup_unreachable(rdf, cs):
     
 
 def check_labels(rdf):
-  # fix labels with extra whitespace
-  for labelProp in (SKOS.prefLabel, SKOS.altLabel, SKOS.hiddenLabel):
-    for conc, label in rdf.subject_objects(labelProp):
-      if len(label.strip()) < len(label):
-        warn("Stripping whitespace from label of %s: '%s'" % (conc, label))
-        newlabel = Literal(label.strip(), label.language)
-        rdf.remove((conc, labelProp, label))
-        rdf.add((conc, labelProp, newlabel))
-        
   # check that concepts have only one prefLabel per language
   for conc in rdf.subjects(RDF.type, SKOS.Concept):
     prefLabels = {}
@@ -698,6 +728,9 @@ def skosify(inputfile, namespaces, typemap, literalmap, relationmap, options):
   transform_concepts(voc, cs, typemap)
   transform_literals(voc, literalmap)
   transform_relations(voc, relationmap) 
+
+  # special transforms for labels: whitespace, prefLabel vs altLabel
+  transform_labels(voc)
 
   # special transforms for collections and aggregate concepts
   transform_collections(voc)
