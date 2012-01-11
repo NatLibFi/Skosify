@@ -56,6 +56,7 @@ DEFAULT_OPTIONS = {
   'transitive': False,
   'aggregates': False,
   'namespace': None,
+  'default_language': None,
   'debug': False,
   'infer': False,
 }
@@ -358,15 +359,28 @@ def transform_relations(rdf, relationmap):
     else:
       warn("Don't know what to do with relation %s" % p)
 
-def transform_labels(rdf):
-  # fix labels with extra whitespace
-  for labelProp in (SKOS.prefLabel, SKOS.altLabel, SKOS.hiddenLabel, SKOSEXT.candidateLabel):
+def transform_labels(rdf, defaultlanguage):
+  # fix labels and documentary notes with extra whitespace
+  for labelProp in (SKOS.prefLabel, SKOS.altLabel, SKOS.hiddenLabel, SKOSEXT.candidateLabel,
+                    SKOS.note, SKOS.scopeNote, SKOS.definition, SKOS.example,
+                    SKOS.historyNote, SKOS.editorialNote, SKOS.changeNote):
     for conc, label in rdf.subject_objects(labelProp):
+      if not isinstance(label, Literal):
+        continue
+      # strip extra whitespace, if found
       if len(label.strip()) < len(label):
         warn("Stripping whitespace from label of %s: '%s'" % (conc, label))
         newlabel = Literal(label.strip(), label.language)
         rdf.remove((conc, labelProp, label))
         rdf.add((conc, labelProp, newlabel))
+        label = newlabel
+      # set default language
+      if defaultlanguage and label.language is None:
+        warn("Setting default language of '%s' to %s" % (label, defaultlanguage))
+        newlabel = Literal(label, defaultlanguage)
+        rdf.remove((conc, labelProp, label))
+        rdf.add((conc, labelProp, newlabel))
+        
 
   # make skosext:candidateLabel either prefLabel or altLabel
   
@@ -742,7 +756,7 @@ def skosify(inputfile, namespaces, typemap, literalmap, relationmap, options):
   transform_relations(voc, relationmap) 
 
   # special transforms for labels: whitespace, prefLabel vs altLabel
-  transform_labels(voc)
+  transform_labels(voc, options.default_language)
 
   # special transforms for collections and aggregate concepts
   transform_collections(voc)
@@ -799,6 +813,7 @@ def get_option_parser(defaults):
   parser.add_option('-c', '--config', type='string', help='Read default options and transformation definitions from the given configuration file.')
   parser.add_option('-o', '--output', type='string', help='Output file name. Default is "-" (stdout).')
   parser.add_option('-s', '--namespace', type='string', help='Namespace of vocabulary (usually optional; used to create a ConceptScheme)')
+  parser.add_option('-l', '--default-language', type='string', help='Language tag to set for labels with no defined language.')
   parser.add_option('-f', '--from-format', type='string', help='Input format. Default is to detect format based on file extension. Possible values: xml, n3, turtle, nt...')
   parser.add_option('-F', '--to-format', type='string', help='Output format. Default is to detect format based on file extension. Possible values: xml, n3, turtle, nt...')
   parser.add_option('-i', '--infer', action="store_true", help='Perform RDFS subclass/subproperty inference before transforming input.')
