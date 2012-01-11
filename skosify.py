@@ -433,7 +433,8 @@ def transform_collections(rdf):
                     SKOS.broaderTransitive, SKOS.narrowerTransitive,
                     SKOS.mappingRelation,
                     SKOS.closeMatch, SKOS.exactMatch,
-                    SKOS.broadMatch, SKOS.narrowMatch, SKOS.relatedMatch):
+                    SKOS.broadMatch, SKOS.narrowMatch, SKOS.relatedMatch,
+                    SKOS.inScheme, SKOS.topConceptOf, SKOS.hasTopConcept):
       for o in rdf.objects(coll, relProp):
         warn("Removing concept relation %s -> %s from collection %s" %
              (localname(relProp), o, coll))
