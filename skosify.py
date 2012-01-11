@@ -202,6 +202,22 @@ def get_concept_scheme(rdf):
   """Return a skos:ConceptScheme contained in the model, or None if not present."""
   return rdf.value(None, RDF.type, SKOS.ConceptScheme, any=True)
 
+def detect_namespace(rdf):
+  """Try to automatically detect the URI namespace of the vocabulary. Return namespace as URIRef."""
+  
+  # pick a concept
+  conc = rdf.value(None, RDF.type, SKOS.Concept, any=True)
+  if conc is None:
+    error("Namespace auto-detection failed. Set namespace using the --namespace option.")
+
+  ln = localname(conc)
+  ns = URIRef(conc.replace(ln, ''))
+  if ns.strip() == '':
+    error("Namespace auto-detection failed. Set namespace using the --namespace option.")
+  
+  warn("Namespace auto-detected to '%s' - you can override this with the --namespace option." % ns)
+  return ns
+
 def create_concept_scheme(rdf, ns, lname='conceptscheme'):
   """Create a skos:ConceptScheme in the model and return it."""
 
@@ -211,8 +227,9 @@ def create_concept_scheme(rdf, ns, lname='conceptscheme'):
     # FIXME what if there are several owl:Ontology instances? (TERO)
     ont = rdf.value(None, RDF.type, OWL.Ontology, any=True)
     if not ont:
-      error("No skos:ConceptScheme or owl:Ontology found, please set the vocabulary namespace using --namespace option")
-    if ont.endswith('/') or ont.endswith('#'):
+      warn("No skos:ConceptScheme or owl:Ontology found. Using namespace auto-detection for creating concept scheme.")
+      ns = detect_namespace(rdf)
+    elif ont.endswith('/') or ont.endswith('#'):
       ns = ont
     else:
       ns = ont + '/'
@@ -277,7 +294,7 @@ def infer_properties(rdf):
         rdf.add((s,sp,o))
   
 
-def transform_concepts(rdf, cs, typemap):
+def transform_concepts(rdf, typemap):
   """Transform YSO-style Concepts into skos:Concepts, GroupConcepts into skos:Collections and AggregateConcepts into ...what?"""
 
   # find out all the types used in the model
@@ -719,13 +736,8 @@ def skosify(inputfile, namespaces, typemap, literalmap, relationmap, options):
 
   setup_namespaces(voc, namespaces)
   
-  # find/create concept scheme
-  cs = get_concept_scheme(voc)
-  if not cs:
-    cs = create_concept_scheme(voc, options.namespace)
-
   # transform concepts, literals and concept relations
-  transform_concepts(voc, cs, typemap)
+  transform_concepts(voc, typemap)
   transform_literals(voc, literalmap)
   transform_relations(voc, relationmap) 
 
@@ -734,6 +746,12 @@ def skosify(inputfile, namespaces, typemap, literalmap, relationmap, options):
 
   # special transforms for collections and aggregate concepts
   transform_collections(voc)
+
+  # find/create concept scheme
+  cs = get_concept_scheme(voc)
+  if not cs:
+    cs = create_concept_scheme(voc, options.namespace)
+
   transform_aggregate_concepts(voc, cs, relationmap, options.aggregates)
 
   # enrichments: broader <-> narrower, related <-> related
