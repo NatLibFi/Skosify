@@ -192,6 +192,7 @@ def read_input(filenames, fmt):
       fmt = 'xml' # default
       if filename.endswith('n3'): fmt = 'n3'
       if filename.endswith('ttl'): fmt = 'n3'
+      if filename.endswith('nt'): fmt = 'nt'
 
     rdf.parse(f, format=fmt)
 
@@ -732,6 +733,7 @@ def write_output(rdf, filename, fmt):
     # determine output format
     fmt = 'xml' # default
     if filename.endswith('n3'): fmt = 'n3'
+    if filename.endswith('nt'): fmt = 'nt'
     if filename.endswith('ttl'): fmt = 'turtle'
 
   rdf.serialize(destination=out, format=fmt)
