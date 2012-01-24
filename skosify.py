@@ -738,6 +738,7 @@ def skosify(inputfile, namespaces, typemap, literalmap, relationmap, options):
   global debugging
   debugging = options.debug
 
+  debug("Skosify starting. $Revision$")
   starttime = time.time()
 
   # Stage 1: Read input
