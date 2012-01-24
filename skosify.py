@@ -814,7 +814,8 @@ def get_option_parser(defaults):
   
   # process command line parameters
   # e.g. skosify yso.owl -o yso-skos.rdf
-  parser = optparse.OptionParser()
+  usage = "Usage: %prog [options] voc1 [voc2 ...]"
+  parser = optparse.OptionParser(usage=usage)
   parser.set_defaults(**defaults)
   parser.add_option('-c', '--config', type='string', help='Read default options and transformation definitions from the given configuration file.')
   parser.add_option('-o', '--output', type='string', help='Output file name. Default is "-" (stdout).')
