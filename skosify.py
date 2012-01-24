@@ -175,24 +175,26 @@ def find_prop_overlap(rdf, prop1, prop2):
     if (s,prop2,o) in rdf:
       yield (s,o)
 
-def read_input(filename, fmt):
-  """Read the given RDF file and return an rdflib Graph object."""
-  if filename == '-':
-    f = sys.stdin
-  else:
-    f = open(filename, 'r')
-  
-  if not fmt:
-    # determine format based on file extension
-    fmt = 'xml' # default
-    if filename.endswith('n3'): fmt = 'n3'
-    if filename.endswith('ttl'): fmt = 'n3'
-
+def read_input(filenames, fmt):
+  """Read the given RDF file(s) and return an rdflib Graph object."""
   store = IOMemory()
   rdf = Graph(store)
 #  rdf = Graph()
 
-  rdf.parse(f, format=fmt)
+  for filename in filenames:
+    if filename == '-':
+      f = sys.stdin
+    else:
+      f = open(filename, 'r')
+    
+    if not fmt:
+      # determine format based on file extension
+      fmt = 'xml' # default
+      if filename.endswith('n3'): fmt = 'n3'
+      if filename.endswith('ttl'): fmt = 'n3'
+
+    rdf.parse(f, format=fmt)
+
   return rdf
 
 def setup_namespaces(rdf, namespaces):
@@ -734,7 +736,7 @@ def write_output(rdf, filename, fmt):
 
   rdf.serialize(destination=out, format=fmt)
 
-def skosify(inputfile, namespaces, typemap, literalmap, relationmap, options):
+def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
   global debugging
   debugging = options.debug
 
@@ -742,7 +744,7 @@ def skosify(inputfile, namespaces, typemap, literalmap, relationmap, options):
   starttime = time.time()
 
   # Stage 1: Read input
-  voc = read_input(inputfile, options.from_format)
+  voc = read_input(inputfiles, options.from_format)
   inputtime = time.time()
 
   # Stage 2: Process
@@ -796,10 +798,10 @@ def skosify(inputfile, namespaces, typemap, literalmap, relationmap, options):
   write_output(voc, options.output, options.to_format)
   endtime = time.time()
 
-  debug("reading input file %s took  %d seconds" % (inputfile, inputtime - starttime))
-  debug("processing took             %d seconds" % (processtime - inputtime))
-  debug("writing output file %s took %d seconds" % (options.output, endtime-processtime))
-  debug("total time taken:           %d seconds" % (endtime - starttime))
+  debug("reading input file took  %d seconds" % (inputtime - starttime))
+  debug("processing took          %d seconds" % (processtime - inputtime))
+  debug("writing output file took %d seconds" % (endtime - processtime))
+  debug("total time taken:        %d seconds" % (endtime - starttime))
 
 
 def get_option_parser(defaults):
@@ -904,11 +906,11 @@ def main():
     
 
   if remainingArgs:
-    inputfile = remainingArgs[0]
+    inputfiles = remainingArgs
   else:
-    inputfile = '-'
+    inputfiles = ['-']
 
-  skosify(inputfile, namespaces, typemap, literalmap, relationmap, options)
+  skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options)
   
   
 if __name__ == '__main__':
