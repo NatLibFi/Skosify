@@ -535,6 +535,9 @@ def setup_top_concepts(rdf):
       # check whether it's a top concept
       broader = rdf.value(conc, SKOS.broader, None, any=True)
       if broader is None: # yes it is a top concept!
+        if (cs, SKOS.hasTopConcept, conc) not in rdf and \
+           (conc, SKOS.topConceptOf, cs) not in rdf:
+            warn("Marking loose concept %s as top concept" % conc)
         rdf.add((cs, SKOS.hasTopConcept, conc))
         rdf.add((conc, SKOS.topConceptOf, cs))
 
