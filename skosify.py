@@ -530,6 +530,8 @@ def setup_top_concepts(rdf):
 
   for cs in rdf.subjects(RDF.type, SKOS.ConceptScheme):
     for conc in rdf.subjects(SKOS.inScheme, cs):
+      if (conc, RDF.type, SKOS.Concept) not in rdf:
+        continue # not a Concept, so can't be a top concept
       # check whether it's a top concept
       broader = rdf.value(conc, SKOS.broader, None, any=True)
       if broader is None: # yes it is a top concept!
