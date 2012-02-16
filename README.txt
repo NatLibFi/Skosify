@@ -1,4 +1,4 @@
-Skosify version 0.2
+Skosify version 0.3
 
 SKOS converter for RDFS/OWL/SKOS vocabularies
 

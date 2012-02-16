@@ -1,5 +1,16 @@
 Skosify release notes
 
+v0.3 - 2012-02-16
+
+New features (with issue numbers):
+Automatically detect vocabulary namespace (#8).
+Setting language for labels and documentary notes without language tag (#10).
+Better sanitizing of Concept-specific properties on Collections (#11)
+Support multiple input files (issue #12)
+Support .nt file extension (n-triples format)
+Slightly better usage message for --help (show input file parameters)
+
+
 v0.2 - 2011-11-17
 
 Added support for property skosext:candidateLabel. Label properties mapped
@@ -13,7 +24,6 @@ vocabularies.
 
 
 v0.1 - 2011-05-25
------------------
 
 First public version.
 
