@@ -8,6 +8,7 @@
 
 import sys
 import time
+import logging
 
 try:
   from rdflib import URIRef, BNode, Literal, Namespace, RDF, RDFS
@@ -61,24 +62,6 @@ DEFAULT_OPTIONS = {
   'infer': False,
 }
 
-
-
-
-# global flag for debugging
-debugging = False
-
-
-
-def debug(str):
-  if debugging:
-    print >>sys.stderr, "[debug]", str.encode('UTF-8')
-
-def warn(str):
-  print >>sys.stderr, "Warning:", str.encode('UTF-8')
-
-def error(str):
-  print >>sys.stderr, "ERROR:", str.encode('UTF-8')
-  sys.exit(1)
 
 def localname(uri):
   """Determine the local name (after namespace) of the given URI"""
@@ -212,14 +195,16 @@ def detect_namespace(rdf):
   # pick a concept
   conc = rdf.value(None, RDF.type, SKOS.Concept, any=True)
   if conc is None:
-    error("Namespace auto-detection failed. Set namespace using the --namespace option.")
+    logging.critical("Namespace auto-detection failed. Set namespace using the --namespace option.")
+    sys.exit(1)
 
   ln = localname(conc)
   ns = URIRef(conc.replace(ln, ''))
   if ns.strip() == '':
-    error("Namespace auto-detection failed. Set namespace using the --namespace option.")
+    logging.critical("Namespace auto-detection failed. Set namespace using the --namespace option.")
+    sys.exit(1)
   
-  warn("Namespace auto-detected to '%s' - you can override this with the --namespace option." % ns)
+  logging.info("Namespace auto-detected to '%s' - you can override this with the --namespace option.", ns)
   return ns
 
 def create_concept_scheme(rdf, ns, lname='conceptscheme'):
@@ -231,7 +216,7 @@ def create_concept_scheme(rdf, ns, lname='conceptscheme'):
     # FIXME what if there are several owl:Ontology instances? (TERO)
     ont = rdf.value(None, RDF.type, OWL.Ontology, any=True)
     if not ont:
-      warn("No skos:ConceptScheme or owl:Ontology found. Using namespace auto-detection for creating concept scheme.")
+      logging.info("No skos:ConceptScheme or owl:Ontology found. Using namespace auto-detection for creating concept scheme.")
       ns = detect_namespace(rdf)
     elif ont.endswith('/') or ont.endswith('#'):
       ns = ont
@@ -261,7 +246,7 @@ def create_concept_scheme(rdf, ns, lname='conceptscheme'):
 def infer_classes(rdf):
   """Do RDFS subclass inference: mark all resources with a subclass type with the upper class."""
 
-  debug("doing RDFS subclass inference")
+  logging.debug("doing RDFS subclass inference")
   # find out the subclass mappings
   upperclasses = {}	# key: class val: set([superclass1, superclass2..])
   for s,o in rdf.subject_objects(RDFS.subClassOf):
@@ -272,7 +257,7 @@ def infer_classes(rdf):
 
   # set the superclass type information for subclass instances
   for s,ucs in upperclasses.iteritems():
-    debug("setting superclass types: %s -> %s" % (s, str(ucs)))
+    logging.debug("setting superclass types: %s -> %s", s, str(ucs))
     for res in rdf.subjects(RDF.type, s):
       for uc in ucs:
         rdf.add((res, RDF.type, uc))
@@ -281,7 +266,7 @@ def infer_classes(rdf):
 def infer_properties(rdf):
   """Do RDFS subproperty inference: add superproperties where subproperties have been used."""
 
-  debug("doing RDFS subproperty inference")
+  logging.debug("doing RDFS subproperty inference")
   # find out the subproperty mappings
   superprops = {}	# key: property val: set([superprop1, superprop2..])
   for s,o in rdf.subject_objects(RDFS.subPropertyOf):
@@ -292,7 +277,7 @@ def infer_properties(rdf):
   
   # add the superproperty relationships
   for p,sps in superprops.iteritems():
-    debug("setting superproperties: %s -> %s" % (p, str(sps)))
+    logging.debug("setting superproperties: %s -> %s", p, str(sps))
     for s,o in rdf.subject_objects(p):
       for sp in sps:
         rdf.add((s,sp,o))
@@ -310,7 +295,7 @@ def transform_concepts(rdf, typemap):
   for t in types:
     if mapping_match(t, typemap):
       newval = mapping_get(t, typemap)
-      debug("transform class %s -> %s" % (t, newval))
+      logging.debug("transform class %s -> %s", t, newval)
       if newval is None: # delete all instances
         for inst in rdf.subjects(RDF.type, t):
           delete_uri(rdf, inst)
@@ -318,7 +303,7 @@ def transform_concepts(rdf, typemap):
       else:
         replace_object(rdf, t, newval, predicate=RDF.type)
     else:
-      warn("Don't know what to do with type %s" % t)
+      logging.warning("Don't know what to do with type %s", t)
       
 
 def transform_literals(rdf, literalmap):
@@ -336,10 +321,10 @@ def transform_literals(rdf, literalmap):
   for p in props:
     if mapping_match(p, literalmap):
       newval = mapping_get(p, literalmap)
-      debug("transform literal %s -> %s" % (p, newval))
+      logging.debug("transform literal %s -> %s", p, newval)
       replace_predicate(rdf, p, newval, subjecttypes=affected_types)
     else:
-      warn("Don't know what to do with literal %s" % p)
+      logging.warning("Don't know what to do with literal %s", p)
       
 
 def transform_relations(rdf, relationmap):
@@ -357,10 +342,10 @@ def transform_relations(rdf, relationmap):
   for p in props:
     if mapping_match(p, relationmap):
       newval = mapping_get(p, relationmap)
-      debug("transform relation %s -> %s" % (p, newval))
+      logging.debug("transform relation %s -> %s",p, newval)
       replace_predicate(rdf, p, newval, subjecttypes=affected_types)
     else:
-      warn("Don't know what to do with relation %s" % p)
+      logging.warning("Don't know what to do with relation %s", p)
 
 def transform_labels(rdf, defaultlanguage):
   # fix labels and documentary notes with extra whitespace
@@ -372,14 +357,14 @@ def transform_labels(rdf, defaultlanguage):
         continue
       # strip extra whitespace, if found
       if len(label.strip()) < len(label):
-        warn("Stripping whitespace from label of %s: '%s'" % (conc, label))
+        logging.warning("Stripping whitespace from label of %s: '%s'", conc, label)
         newlabel = Literal(label.strip(), label.language)
         rdf.remove((conc, labelProp, label))
         rdf.add((conc, labelProp, newlabel))
         label = newlabel
       # set default language
       if defaultlanguage and label.language is None:
-        warn("Setting default language of '%s' to %s" % (label, defaultlanguage))
+        logging.warning("Setting default language of '%s' to %s", label, defaultlanguage)
         newlabel = Literal(label, defaultlanguage)
         rdf.remove((conc, labelProp, label))
         rdf.add((conc, labelProp, newlabel))
@@ -439,12 +424,12 @@ def transform_collections(rdf):
                     SKOS.broadMatch, SKOS.narrowMatch, SKOS.relatedMatch,
                     SKOS.topConceptOf, SKOS.hasTopConcept):
       for o in rdf.objects(coll, relProp):
-        warn("Removing concept relation %s -> %s from collection %s" %
-             (localname(relProp), o, coll))
+        logging.warning("Removing concept relation %s -> %s from collection %s",
+             localname(relProp), o, coll)
         rdf.remove((coll, relProp, o))
       for s in rdf.subjects(relProp, coll):
-        warn("Removing concept relation %s <- %s from collection %s" %
-             (localname(relProp), s, coll))
+        logging.warning("Removing concept relation %s <- %s from collection %s",
+             localname(relProp), s, coll)
         rdf.remove((s, relProp, coll))
 
 def transform_aggregate_concepts(rdf, cs, relationmap, aggregates):
@@ -454,7 +439,7 @@ def transform_aggregate_concepts(rdf, cs, relationmap, aggregates):
      all aggregate concepts instead."""
 
   if not aggregates:
-    debug("removing aggregate concepts")
+    logging.debug("removing aggregate concepts")
 
   aggregate_concepts = []
 
@@ -479,7 +464,7 @@ def transform_aggregate_concepts(rdf, cs, relationmap, aggregates):
   if len(aggregate_concepts) > 0:
     ns = cs.replace(localname(cs), '')
     acs = create_concept_scheme(rdf, ns, 'aggregateconceptscheme')
-    debug("creating aggregate concept scheme %s" % acs)
+    logging.debug("creating aggregate concept scheme %s", acs)
     for conc in aggregate_concepts:
       rdf.add((conc, SKOS.inScheme, acs))
 
@@ -537,7 +522,7 @@ def setup_top_concepts(rdf):
       if broader is None: # yes it is a top concept!
         if (cs, SKOS.hasTopConcept, conc) not in rdf and \
            (conc, SKOS.topConceptOf, cs) not in rdf:
-            warn("Marking loose concept %s as top concept" % conc)
+            logging.warning("Marking loose concept %s as top concept", conc)
         rdf.add((cs, SKOS.hasTopConcept, conc))
         rdf.add((conc, SKOS.topConceptOf, cs))
 
@@ -557,7 +542,7 @@ def cleanup_classes(rdf):
     for cl in rdf.subjects(RDF.type, t):
       # SKOS classes may be safely removed
       if cl.startswith(SKOS):
-        debug("removing SKOS class definition: %s" % cl)
+        logging.debug("removing SKOS class definition: %s", cl)
         replace_subject(rdf, cl, None)
         continue
       # if there are instances of the class, keep the class def
@@ -569,10 +554,10 @@ def cleanup_classes(rdf):
 
       # if the class is also a skos:Concept or skos:Collection, only remove its rdf:type
       if (cl, RDF.type, SKOS.Concept) in rdf or (cl, RDF.type, SKOS.Collection) in rdf:
-        debug("removing classiness of %s" % cl)
+        logging.debug("removing classiness of %s", cl)
         rdf.remove((cl, RDF.type, t))
       else: # remove it completely
-        debug("removing unused class definition: %s" % cl)
+        logging.debug("removing unused class definition: %s", cl)
         replace_subject(rdf, cl, None)
 
 def cleanup_properties(rdf):
@@ -580,18 +565,18 @@ def cleanup_properties(rdf):
   for t in (RDF.Property, OWL.DatatypeProperty, OWL.ObjectProperty):
     for prop in rdf.subjects(RDF.type, t):
       if prop.startswith(SKOS):
-        debug("removing SKOS property definition: %s" % prop)
+        logging.debug("removing SKOS property definition: %s", prop)
         replace_subject(rdf, prop, None)
         continue
       if prop.startswith(DC):
-        debug("removing DC property definition: %s" % prop)
+        logging.debug("removing DC property definition: %s", prop)
         replace_subject(rdf, prop, None)
         continue
       
       # if there are triples using the property, keep the property def
       if len(list(rdf.subject_objects(prop))) > 0: continue
       
-      debug("removing unused property definition: %s" % prop)
+      logging.debug("removing unused property definition: %s", prop)
       replace_subject(rdf, prop, None)
 
 def find_reachable(rdf, res):
@@ -632,7 +617,7 @@ def find_reachable(rdf, res):
         to_search.add(p)
 
   endtime = time.time()
-  debug("find_reachable took %f seconds" % (endtime-starttime))
+  logging.debug("find_reachable took %f seconds", (endtime-starttime))
   
   return seen
 
@@ -641,12 +626,12 @@ def cleanup_unreachable(rdf, cs):
   
   all_subjects = set(rdf.subjects())
   
-  debug("total subject resources: %d" % len(all_subjects))
+  logging.debug("total subject resources: %d", len(all_subjects))
   
   reachable = find_reachable(rdf, cs)
   nonreachable = all_subjects - reachable
 
-  debug("deleting %s non-reachable resources" % len(nonreachable))
+  logging.debug("deleting %s non-reachable resources", len(nonreachable))
   
   for subj in nonreachable:
     delete_uri(rdf, subj)
@@ -664,8 +649,8 @@ def check_labels(rdf):
     for lang, labels in prefLabels.items():
       if len(labels) > 1:
         shortest = sorted(labels, key=len)[0]
-        warn("Concept %s has more than one prefLabel@%s: choosing %s" % \
-             (conc, lang, shortest))
+        logging.warning("Concept %s has more than one prefLabel@%s: choosing %s", \
+             conc, lang, shortest)
         for label in labels:
           if label != shortest:
             rdf.remove((conc, SKOS.prefLabel, label))
@@ -673,16 +658,16 @@ def check_labels(rdf):
 
   # check overlap between disjoint label properties
   for conc,label in find_prop_overlap(rdf, SKOS.prefLabel, SKOS.altLabel):
-    warn("Concept %s has '%s'@%s as both prefLabel and altLabel; removing altLabel" % \
-         (conc, label, label.language))
+    logging.warning("Concept %s has '%s'@%s as both prefLabel and altLabel; removing altLabel", \
+         conc, label, label.language)
     rdf.remove((conc, SKOS.altLabel, label))
   for conc,label in find_prop_overlap(rdf, SKOS.prefLabel, SKOS.hiddenLabel):
-    warn("Concept %s has '%s'@%s as both prefLabel and hiddenLabel; removing hiddenLabel" % \
-         (conc, label, label.language))
+    logging.warning("Concept %s has '%s'@%s as both prefLabel and hiddenLabel; removing hiddenLabel", \
+         conc, label, label.language)
     rdf.remove((conc, SKOS.hiddenLabel, label))
   for conc,label in find_prop_overlap(rdf, SKOS.altLabel, SKOS.hiddenLabel):
-    warn("Concept %s has '%s'@%s as both altLabel and hiddenLabel; removing hiddenLabel" % \
-         (conc, label, label.language))
+    logging.warning("Concept %s has '%s'@%s as both altLabel and hiddenLabel; removing hiddenLabel", \
+         conc, label, label.language)
     rdf.remove((conc, SKOS.hiddenLabel, label))
   
 
@@ -692,7 +677,7 @@ def check_hierarchy_visit(rdf, node, parent, status):
     for child in rdf.subjects(SKOS.broader, node):
       check_hierarchy_visit(rdf, child, node, status)
   elif status.get(node) == 1: # has been entered but not yet done
-    warn("Hierarchy loop removed at %s -> %s" % (localname(parent), localname(node)))
+    logging.warning("Hierarchy loop removed at %s -> %s", localname(parent), localname(node))
     rdf.remove((node, SKOS.broader, parent))
     rdf.remove((node, SKOS.broaderTransitive, parent))
     rdf.remove((node, SKOSEXT.broaderGeneric, parent))
@@ -719,12 +704,12 @@ def check_hierarchy(rdf):
   # related and broaderTransitive
   for conc1,conc2 in rdf.subject_objects(SKOS.related):
     if conc2 in rdf.transitive_objects(conc1, SKOS.broader):
-      warn("Concepts %s and %s connected by both skos:broaderTransitive and skos:related, removing skos:related" % \
-           (conc1, conc2))
+      logging.warning("Concepts %s and %s connected by both skos:broaderTransitive and skos:related, removing skos:related", \
+           conc1, conc2)
       rdf.remove((conc1, SKOS.related, conc2))
       rdf.remove((conc2, SKOS.related, conc1))
 
-  debug("check_hierarchy took %f seconds" % (endtime-starttime))
+  logging.debug("check_hierarchy took %f seconds", (endtime-starttime))
       
 
 def write_output(rdf, filename, fmt):
@@ -744,23 +729,28 @@ def write_output(rdf, filename, fmt):
   rdf.serialize(destination=out, format=fmt)
 
 def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
-  global debugging
-  debugging = options.debug
 
-  debug("Skosify starting. $Revision$")
+  if options.debug:
+    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
+  else:
+    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+ 
+  logging.debug("Skosify starting. $Revision$")
   starttime = time.time()
 
-  # Stage 1: Read input
+  logging.debug("Phase 1: Parsing input file")
   voc = read_input(inputfiles, options.from_format)
   inputtime = time.time()
 
-  # Stage 2: Process
+  logging.debug("Phase 2: Performing inferences")
   if options.infer:
     infer_classes(voc)
     infer_properties(voc)
 
+  logging.debug("Phase 3: Setting up namespaces")
   setup_namespaces(voc, namespaces)
   
+  logging.debug("Phase 4: Transforming concepts, literals and relations")
   # transform concepts, literals and concept relations
   transform_concepts(voc, typemap)
   transform_literals(voc, literalmap)
@@ -779,36 +769,41 @@ def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
 
   transform_aggregate_concepts(voc, cs, relationmap, options.aggregates)
 
+  logging.debug("Phase 5: Performing SKOS enrichments")
   # enrichments: broader <-> narrower, related <-> related
   enrich_relations(voc, options.narrower, options.transitive)
 
+  logging.debug("Phase 6: Cleaning up")
   # clean up unused/unnecessary class/property definitions and unreachable triples
   cleanup_properties(voc)
   cleanup_classes(voc)
   cleanup_unreachable(voc, cs)
   
+  logging.debug("Phase 7: Setting up concept schemes and top concepts")
   # setup inScheme and hasTopConcept
   setup_concept_scheme(voc, cs)
   setup_top_concepts(voc)
 
+  logging.debug("Phase 8: Checking concept hierarchy")
   # check hierarchy for cycles
   check_hierarchy(voc)
   
+  logging.debug("Phase 9: Checking labels")
   # check for duplicate labels
   check_labels(voc)
   
 
   processtime = time.time()
 
-  # Stage 3: Write output
+  logging.debug("Phase 10: Writing output")
   
   write_output(voc, options.output, options.to_format)
   endtime = time.time()
 
-  debug("reading input file took  %d seconds" % (inputtime - starttime))
-  debug("processing took          %d seconds" % (processtime - inputtime))
-  debug("writing output file took %d seconds" % (endtime - processtime))
-  debug("total time taken:        %d seconds" % (endtime - starttime))
+  logging.debug("reading input file took  %d seconds", (inputtime - starttime))
+  logging.debug("processing took          %d seconds", (processtime - inputtime))
+  logging.debug("writing output file took %d seconds", (endtime - processtime))
+  logging.debug("total time taken:        %d seconds", (endtime - starttime))
 
 
 def get_option_parser(defaults):
@@ -863,7 +858,7 @@ def expand_curielike(namespaces, curie):
   if ns in namespaces:
     return URIRef(namespaces[ns] + localpart)
   else:
-    warn("Unknown namespace prefix %s" % ns)
+    logging.warning("Unknown namespace prefix %s", ns)
     return URIRef(curie)
 
 def main():
@@ -902,7 +897,7 @@ def main():
     # parse options from configuration file
     for opt, val in cfgparser.items('options'):
       if opt not in defaults:
-        warn('Unknown option in configuration file: %s (ignored)' % opt)
+        logging.warning('Unknown option in configuration file: %s (ignored)', opt)
         continue
       if defaults[opt] in (True, False): # is a Boolean option
         defaults[opt] = cfgparser.getboolean('options', opt)
