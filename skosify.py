@@ -189,6 +189,9 @@ def setup_namespaces(rdf, namespaces):
 
 def get_concept_scheme(rdf):
   """Return a skos:ConceptScheme contained in the model, or None if not present."""
+  # add explicit type
+  for s,o in rdf.subject_objects(SKOS.inScheme):
+    rdf.add((o, RDF.type, SKOS.ConceptScheme))
   return rdf.value(None, RDF.type, SKOS.ConceptScheme, any=True)
 
 def detect_namespace(rdf):
