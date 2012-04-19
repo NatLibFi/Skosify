@@ -57,6 +57,7 @@ DEFAULT_OPTIONS = {
   'transitive': False,
   'aggregates': False,
   'keep_related': False,
+  'break_cycles': False,
   'namespace': None,
   'label': None,
   'default_language': None,
@@ -681,31 +682,34 @@ def check_labels(rdf):
     rdf.remove((conc, SKOS.hiddenLabel, label))
   
 
-def check_hierarchy_visit(rdf, node, parent, status):
+def check_hierarchy_visit(rdf, node, parent, break_cycles, status):
   if status.get(node) is None:
     status[node] = 1 # entered
     for child in rdf.subjects(SKOS.broader, node):
-      check_hierarchy_visit(rdf, child, node, status)
+      check_hierarchy_visit(rdf, child, node, break_cycles, status)
   elif status.get(node) == 1: # has been entered but not yet done
-    logging.warning("Hierarchy loop removed at %s -> %s", localname(parent), localname(node))
-    rdf.remove((node, SKOS.broader, parent))
-    rdf.remove((node, SKOS.broaderTransitive, parent))
-    rdf.remove((node, SKOSEXT.broaderGeneric, parent))
-    rdf.remove((node, SKOSEXT.broaderPartitive, parent))
-    rdf.remove((parent, SKOS.narrower, node))
-    rdf.remove((parent, SKOS.narrowerTransitive, node))
+    if break_cycles:
+      logging.warning("Hierarchy cycle removed at %s -> %s", localname(parent), localname(node))
+      rdf.remove((node, SKOS.broader, parent))
+      rdf.remove((node, SKOS.broaderTransitive, parent))
+      rdf.remove((node, SKOSEXT.broaderGeneric, parent))
+      rdf.remove((node, SKOSEXT.broaderPartitive, parent))
+      rdf.remove((parent, SKOS.narrower, node))
+      rdf.remove((parent, SKOS.narrowerTransitive, node))
+    else:
+      logging.warning("Hierarchy cycle detected at %s -> %s, but not removed because break_cycles is not active", localname(parent), localname(node))
   elif status.get(node) == 2: # is completed already
     pass
   status[node] = 2 # set this node as completed
 
-def check_hierarchy(rdf, keep_related):
+def check_hierarchy(rdf, break_cycles, keep_related):
   # check for cycles in the skos:broader hierarchy
   # using a recursive depth first search algorithm
   starttime = time.time()
 
   top_concepts = rdf.subject_objects(SKOS.hasTopConcept)
   for cs,root in top_concepts:
-    check_hierarchy_visit(rdf, root, None, status={})
+    check_hierarchy_visit(rdf, root, None, break_cycles, status={})
 
   # check overlap between disjoint semantic relations
   # related and broaderTransitive
@@ -801,7 +805,7 @@ def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
 
   logging.debug("Phase 8: Checking concept hierarchy")
   # check hierarchy for cycles
-  check_hierarchy(voc, options.keep_related)
+  check_hierarchy(voc, options.break_cycles, options.keep_related)
   
   logging.debug("Phase 9: Checking labels")
   # check for duplicate labels
@@ -849,6 +853,8 @@ def get_option_parser(defaults):
   parser.add_option('-a', '--no-aggregates', dest="aggregates", action="store_false", help='Remove AggregateConcepts completely from the output vocabulary.')
   parser.add_option('-R', '--keep-related', action="store_true", help="Keep skos:related relationships within the same hierarchy.")
   parser.add_option('-r', '--no-keep-related', dest="keep_related", action="store_false", help="Remove skos:related relationships within the same hierarchy.")
+  parser.add_option('-B', '--break-cycles', action="store_true", help="Break any cycles in the skos:broader hierarchy.")
+  parser.add_option('-b', '--no-break-cycles', dest="break_cycles", action="store_false", help="Don't break cycles in the skos:broader hierarchy.")
   parser.add_option('-D', '--debug', action="store_true", help='Show debug output.')
   parser.add_option('-d', '--no-debug', dest="debug", action="store_false", help='Hide debug output.')
   
