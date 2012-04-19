@@ -520,6 +520,12 @@ def enrich_relations(rdf, use_narrower, use_transitive):
         rdf.add((conc, SKOS.broaderTransitive, bt))
         if use_narrower:
           rdf.add((bt, SKOS.narrowerTransitive, conc))
+  else:
+    # transitive relationships are not wanted, so remove them
+    for s,o in rdf.subject_objects(SKOS.broaderTransitive):
+      rdf.remove((s, SKOS.broaderTransitive, o))
+    for s,o in rdf.subject_objects(SKOS.narrowerTransitive):
+      rdf.remove((s, SKOS.narrowerTransitive, o))
 
 def setup_top_concepts(rdf):
   """Determine the top concepts of each concept scheme and mark them using hasTopConcept/topConceptOf."""
