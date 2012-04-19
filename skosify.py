@@ -57,6 +57,7 @@ DEFAULT_OPTIONS = {
   'transitive': False,
   'aggregates': False,
   'namespace': None,
+  'label': None,
   'default_language': None,
   'debug': False,
   'infer': False,
@@ -208,7 +209,7 @@ def detect_namespace(rdf):
   logging.info("Namespace auto-detected to '%s' - you can override this with the --namespace option.", ns)
   return ns
 
-def create_concept_scheme(rdf, ns, lname='conceptscheme'):
+def create_concept_scheme(rdf, ns, lname='conceptscheme', label=None, language=None):
   """Create a skos:ConceptScheme in the model and return it."""
 
   ont = None
@@ -228,6 +229,10 @@ def create_concept_scheme(rdf, ns, lname='conceptscheme'):
   cs = NS[lname]
   
   rdf.add((cs, RDF.type, SKOS.ConceptScheme))
+  if label is not None:
+    rdf.add((cs, RDFS.label, Literal(label, language)))
+  else:
+    logging.warning("Unlabeled concept scheme created. Use --label option to set the concept scheme label.")
   
   if ont is not None:
     rdf.remove((ont, RDF.type, OWL.Ontology))
@@ -767,7 +772,9 @@ def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
   # find/create concept scheme
   cs = get_concept_scheme(voc)
   if not cs:
-    cs = create_concept_scheme(voc, options.namespace)
+    cs = create_concept_scheme(voc, options.namespace,
+                               label=options.label,
+                               language=options.default_language)
 
   transform_aggregate_concepts(voc, cs, relationmap, options.aggregates)
 
@@ -822,6 +829,7 @@ def get_option_parser(defaults):
   parser.add_option('-c', '--config', type='string', help='Read default options and transformation definitions from the given configuration file.')
   parser.add_option('-o', '--output', type='string', help='Output file name. Default is "-" (stdout).')
   parser.add_option('-s', '--namespace', type='string', help='Namespace of vocabulary (usually optional; used to create a ConceptScheme)')
+  parser.add_option('-L', '--label', type='string', help='Label/title for the vocabulary (usually optional; used to label a ConceptScheme)')
   parser.add_option('-l', '--default-language', type='string', help='Language tag to set for labels with no defined language.')
   parser.add_option('-f', '--from-format', type='string', help='Input format. Default is to detect format based on file extension. Possible values: xml, n3, turtle, nt...')
   parser.add_option('-F', '--to-format', type='string', help='Output format. Default is to detect format based on file extension. Possible values: xml, n3, turtle, nt...')
