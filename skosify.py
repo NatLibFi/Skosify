@@ -56,6 +56,7 @@ DEFAULT_OPTIONS = {
   'narrower': True,
   'transitive': False,
   'aggregates': False,
+  'keep_related': False,
   'namespace': None,
   'label': None,
   'default_language': None,
@@ -697,7 +698,7 @@ def check_hierarchy_visit(rdf, node, parent, status):
     pass
   status[node] = 2 # set this node as completed
 
-def check_hierarchy(rdf):
+def check_hierarchy(rdf, keep_related):
   # check for cycles in the skos:broader hierarchy
   # using a recursive depth first search algorithm
   starttime = time.time()
@@ -706,18 +707,20 @@ def check_hierarchy(rdf):
   for cs,root in top_concepts:
     check_hierarchy_visit(rdf, root, None, status={})
 
-  endtime = time.time()
-  
-  
   # check overlap between disjoint semantic relations
   # related and broaderTransitive
   for conc1,conc2 in rdf.subject_objects(SKOS.related):
     if conc2 in rdf.transitive_objects(conc1, SKOS.broader):
-      logging.warning("Concepts %s and %s connected by both skos:broaderTransitive and skos:related, removing skos:related", \
-           conc1, conc2)
-      rdf.remove((conc1, SKOS.related, conc2))
-      rdf.remove((conc2, SKOS.related, conc1))
+      if keep_related:
+        logging.warning("Concepts %s and %s connected by both skos:broaderTransitive and skos:related, but keeping it because keep_related is enabled", \
+             conc1, conc2)
+      else:
+        logging.warning("Concepts %s and %s connected by both skos:broaderTransitive and skos:related, removing skos:related", \
+             conc1, conc2)
+        rdf.remove((conc1, SKOS.related, conc2))
+        rdf.remove((conc2, SKOS.related, conc1))
 
+  endtime = time.time()
   logging.debug("check_hierarchy took %f seconds", (endtime-starttime))
       
 
@@ -798,7 +801,7 @@ def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
 
   logging.debug("Phase 8: Checking concept hierarchy")
   # check hierarchy for cycles
-  check_hierarchy(voc)
+  check_hierarchy(voc, options.keep_related)
   
   logging.debug("Phase 9: Checking labels")
   # check for duplicate labels
@@ -844,6 +847,8 @@ def get_option_parser(defaults):
   parser.add_option('-t', '--no-transitive', dest="transitive", action="store_false", help="Don't include transitive hierarchy relationships in the output vocabulary.")
   parser.add_option('-A', '--aggregates', action="store_true", help='Keep AggregateConcepts completely in the output vocabulary.')
   parser.add_option('-a', '--no-aggregates', dest="aggregates", action="store_false", help='Remove AggregateConcepts completely from the output vocabulary.')
+  parser.add_option('-R', '--keep-related', action="store_true", help="Keep skos:related relationships within the same hierarchy.")
+  parser.add_option('-r', '--no-keep-related', dest="keep_related", action="store_false", help="Remove skos:related relationships within the same hierarchy.")
   parser.add_option('-D', '--debug', action="store_true", help='Show debug output.')
   parser.add_option('-d', '--no-debug', dest="debug", action="store_false", help='Hide debug output.')
   
