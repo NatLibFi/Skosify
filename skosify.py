@@ -177,6 +177,7 @@ def read_input(filenames, fmt):
       if filename.endswith('ttl'): fmt = 'n3'
       if filename.endswith('nt'): fmt = 'nt'
 
+    logging.debug("Parsing input file %s (format: %s)", filename, fmt)
     rdf.parse(f, format=fmt)
 
   return rdf
@@ -726,6 +727,7 @@ def write_output(rdf, filename, fmt):
     if filename.endswith('nt'): fmt = 'nt'
     if filename.endswith('ttl'): fmt = 'turtle'
 
+  logging.debug("Writing output file %s (format: %s)", filename, fmt)
   rdf.serialize(destination=out, format=fmt)
 
 def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
@@ -738,7 +740,7 @@ def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
   logging.debug("Skosify starting. $Revision$")
   starttime = time.time()
 
-  logging.debug("Phase 1: Parsing input file")
+  logging.debug("Phase 1: Parsing input files")
   voc = read_input(inputfiles, options.from_format)
   inputtime = time.time()
 
