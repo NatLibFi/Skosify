@@ -51,6 +51,7 @@ DEFAULT_NAMESPACES = {
 # default values for config file / command line options
 DEFAULT_OPTIONS = {
   'output': '-',
+  'log': None,
   'from_format': None,
   'to_format': None,
   'narrower': True,
@@ -753,10 +754,15 @@ def write_output(rdf, filename, fmt):
 
 def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
 
+  # configure logging
+  logformat = '%(levelname)s: %(message)s'
+  loglevel = logging.INFO
   if options.debug:
-    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
-  else:
-    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+    loglevel = logging.DEBUG
+  if options.log:
+    logging.basicConfig(filename=options.log, format=logformat, level=loglevel)
+  else: # logging messages go into stderr by default
+    logging.basicConfig(format=logformat, level=loglevel)
  
   logging.debug("Skosify starting. $Revision$")
   starttime = time.time()
@@ -844,6 +850,7 @@ def get_option_parser(defaults):
   parser.set_defaults(**defaults)
   parser.add_option('-c', '--config', type='string', help='Read default options and transformation definitions from the given configuration file.')
   parser.add_option('-o', '--output', type='string', help='Output file name. Default is "-" (stdout).')
+  parser.add_option('-O', '--log', type='string', help='Log file name. Default is to use standard error.')
   parser.add_option('-s', '--namespace', type='string', help='Namespace of vocabulary (usually optional; used to create a ConceptScheme)')
   parser.add_option('-L', '--label', type='string', help='Label/title for the vocabulary (usually optional; used to label a ConceptScheme)')
   parser.add_option('-l', '--default-language', type='string', help='Language tag to set for labels with no defined language.')
