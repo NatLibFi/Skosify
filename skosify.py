@@ -182,7 +182,11 @@ def read_input(filenames, fmt):
       if filename.endswith('nt'): fmt = 'nt'
 
     logging.debug("Parsing input file %s (format: %s)", filename, fmt)
-    rdf.parse(f, format=fmt)
+    try:
+      rdf.parse(f, format=fmt)
+    except:
+      logging.critical("Parsing failed. Exception: %s", str(sys.exc_info()[1]))
+      sys.exit(1)
 
   return rdf
 
@@ -835,7 +839,7 @@ def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
   logging.debug("processing took          %d seconds", (processtime - inputtime))
   logging.debug("writing output file took %d seconds", (endtime - processtime))
   logging.debug("total time taken:        %d seconds", (endtime - starttime))
-
+  logging.debug("Finished Skosify run")
 
 def get_option_parser(defaults):
   """Create and return an OptionParser with the given defaults"""
