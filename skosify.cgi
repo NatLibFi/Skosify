@@ -320,9 +320,10 @@ def return_output(session, filename):
     print "Content-Type: text/turtle\n"
   elif filename.endswith('.nt'):
     print "Content-Type: text/plain\n"
+  elif filename.endswith('.n3'):
+    print "Content-Type: text/n3\n"
   else: 
     print "Content-Type: text/plain\n"
-  # TODO n3 mime type?
 
   tempdir = os.path.join(tempfile.gettempdir(), TEMPDIR_PREFIX + session)
   outputfn = os.path.join(tempdir, filename)
