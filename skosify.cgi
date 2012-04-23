@@ -237,9 +237,6 @@ def process_form(input):
   # use the random part of the tempdir name as session id
   session = os.path.basename(tempdir).replace(TEMPDIR_PREFIX, '')
 
-
-#  print "Content-Type: text/plain\n"
-
   # determine where to find the skosify.py script, to be invoked by batch
   cgiscript = sys.argv[0]
   linktarget = os.readlink(cgiscript)
@@ -248,28 +245,21 @@ def process_form(input):
   else:
     abslinktarget = os.path.abspath(os.path.join(os.path.dirname(cgiscript), linktarget))
   
-#  print "abs readlink:", abslinktarget
-  
   skosifyscript = os.path.join(os.path.dirname(abslinktarget), "skosify.py")
-#  print "skosify script:", skosifyscript
 
   print "Status: 303"
   print "Location:", os.environ['SCRIPT_NAME'] + "/" + session + "/"
   print # end of CGI headers
   
-#  sys.exit()
-
   stdout = os.path.join(tempdir, "stdout")
   stderr = os.path.join(tempdir, "stderr")
 
   # start a background process
   cmd = "%s --debug --output %s --log %s %s >%s 2>%s" % \
     (skosifyscript, outputfn, logfn, inputfn, stdout, stderr)
-#  print cmd
   batch = subprocess.Popen("batch", stdin=subprocess.PIPE)
   batch.communicate(input=cmd)
   
-
 
 def start_session(session):
   print "Content-Type: text/html\n"
