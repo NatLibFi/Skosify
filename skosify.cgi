@@ -257,8 +257,8 @@ def process_form(input):
   # start a background process
   cmd = "%s --debug --output %s --log %s %s >%s 2>%s" % \
     (skosifyscript, outputfn, logfn, inputfn, stdout, stderr)
-  batch = subprocess.Popen("batch", stdin=subprocess.PIPE)
-  batch.communicate(input=cmd)
+  at = subprocess.Popen(["at", "now"], stdin=subprocess.PIPE)
+  at.communicate(input=cmd)
   
 
 def start_session(session):
