@@ -49,11 +49,14 @@ h3 {
 }
 form {
   padding: 1em 1em;
-  margin-top: 1em;
   margin-left: auto;
   margin-right: auto;
-  max-width: 25em;
+  max-width: 32em;
   background-color: #eeeeee;
+}
+fieldset {
+  margin-top: 1em;
+  border: 1px solid #999999;
 }
 .buttons {
   margin-top: 1em;
@@ -99,13 +102,40 @@ FRONT_PAGE = """<!DOCTYPE html>
 <div id="body">
 <form action="" method="POST" enctype="multipart/form-data">
 <p id="help">Select a SKOS file to upload (maximum size: %d KB)</p>
+
 <div class="field">
 <label for="input">Input file:</label>
 <input type="file" name="input" />
 </div>
+
+<fieldset>
+<legend>Validity options</legend>
+<div class="field">
+<input type="checkbox" name="keep-related" value="1" />
+<label for="keep-related">Keep skos:related relationships within the same hierarchy</label>
+</div>
+<div class="field">
+<input type="checkbox" name="break-cycles" value="1" />
+<label for="keep-related">Break any cycles in the skos:broader hierarchy</label>
+</div>
+</fieldset>
+
+<fieldset>
+<legend>Output options</legend>
+<div class="field">
+<input type="checkbox" name="narrower" value="1" checked="checked" />
+<label for="narrower">Include skos:narrower relations in output</label>
+</div>
+<div class="field">
+<input type="checkbox" name="transitive" value="1" />
+<label for="transitive">Include transitive hierarchical relations in output</label>
+</div>
+</fieldset>
+
 <div class="buttons">
 <input type="submit" name="submit" value="Process" />
 </div>
+
 </form>
 </div>
 %s
@@ -202,7 +232,8 @@ def front_page():
   print FRONT_PAGE
   sys.exit()
 
-def process_form(input):
+def process_form(form):
+  input = form['input']
   if not input.filename:
     error(400, "No file given")
 
@@ -237,7 +268,7 @@ def process_form(input):
   # use the random part of the tempdir name as session id
   session = os.path.basename(tempdir).replace(TEMPDIR_PREFIX, '')
 
-  # determine where to find the skosify.py script, to be invoked by batch
+  # determine where to find the skosify.py script, to be invoked by at
   cgiscript = sys.argv[0]
   linktarget = os.readlink(cgiscript)
   if linktarget.startswith('/'): # absolute already
@@ -247,18 +278,39 @@ def process_form(input):
   
   skosifyscript = os.path.join(os.path.dirname(abslinktarget), "skosify.py")
 
-  print "Status: 303"
-  print "Location:", os.environ['SCRIPT_NAME'] + "/" + session + "/"
-  print # end of CGI headers
-  
   stdout = os.path.join(tempdir, "stdout")
   stderr = os.path.join(tempdir, "stderr")
 
+  # determine options
+  options = []
+  if form.getfirst("narrower"):
+    options.append('--narrower')
+  else:
+    options.append('--no-narrower')
+  if form.getfirst("transitive"):
+    options.append('--transitive')
+  else:
+    options.append('--no-transitive')
+  if form.getfirst("keep-related"):
+    options.append('--keep-related')
+  else:
+    options.append('--no-keep-related')
+  if form.getfirst("break-cycles"):
+    options.append('--break-cycles')
+  else:
+    options.append('--no-break-cycles')
+  options = ' '.join(options)
+
   # start a background process
-  cmd = "%s --debug --output %s --log %s %s >%s 2>%s" % \
-    (skosifyscript, outputfn, logfn, inputfn, stdout, stderr)
+  cmd = "%s %s --debug --output %s --log %s %s >%s 2>%s" % \
+    (skosifyscript, options, outputfn, logfn, inputfn, stdout, stderr)
   at = subprocess.Popen(["at", "now"], stdin=subprocess.PIPE)
   at.communicate(input=cmd)
+  
+  print "Status: 303"
+  print "Location:", os.environ['SCRIPT_NAME'] + "/" + session + "/"
+  print # end of CGI headers
+  sys.exit()  
   
 
 def start_session(session):
@@ -348,8 +400,7 @@ if not path and 'input' not in form:
 
 # Handle input form (file upload + parameters) and start processing
 if not path and 'input' in form:
-  input = form['input']
-  process_form(input)
+  process_form(form)
 
 elif path:
   parts = path.split('/')
