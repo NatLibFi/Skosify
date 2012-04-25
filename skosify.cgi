@@ -222,7 +222,8 @@ getStatus = function() {
           setTimeout(getStatus, 1000);
         }
       } else {
-        console.log("Error", xhr.statusText);
+        var statusDiv = document.getElementById("status");
+        statusDiv.innerHTML = "Backend error: " + xhr.statusText;
       }
     }
   };
@@ -254,7 +255,7 @@ STATUS_PAGE = """<!DOCTYPE html>
 
 
 # function to print an error message & code and exit
-def error(code, message):
+def return_error(code, message):
   print "Content-Type: text/plain"
   print "Status:", code
   print
@@ -270,7 +271,7 @@ def front_page():
 def process_form(form):
   input = form['input']
   if not input.filename:
-    error(400, "No file given")
+    return_error(400, "No file given")
 
   # determine original file extension, which can be used to detect format
   ext = ""
@@ -298,7 +299,7 @@ def process_form(form):
 
   if i >= MAX_FILE_SIZE:
     shutil.rmtree(tempdir)
-    error(400, "Maximum input file size %d KB exceeded" % MAX_FILE_SIZE)
+    return_error(400, "Maximum input file size %d KB exceeded" % MAX_FILE_SIZE)
 
   # use the random part of the tempdir name as session id
   session = os.path.basename(tempdir).replace(TEMPDIR_PREFIX, '')
@@ -354,6 +355,10 @@ def process_form(form):
   
 
 def start_session(session):
+  tempdir = os.path.join(tempfile.gettempdir(), TEMPDIR_PREFIX + session)
+  if not os.path.exists(tempdir):
+    return_error(404, "Not Found")
+
   print "Content-Type: text/html\n"
   print STATUS_PAGE
   sys.exit()
@@ -367,6 +372,8 @@ def return_status(session):
   report = os.environ['SCRIPT_NAME'] + "/" + session + "/report"
   
   tempdir = os.path.join(tempfile.gettempdir(), TEMPDIR_PREFIX + session)
+  if not os.path.exists(tempdir):
+    return_error(404, "Not Found")
   logfn = os.path.join(tempdir, LOGFILE)
   try:
     log = open(logfn, "r")
@@ -461,4 +468,4 @@ elif path:
   elif method.startswith('report'):
     return_report(session)
 else:
-  error(404, "Not Found") 
+  return_error(404, "Not Found") 
