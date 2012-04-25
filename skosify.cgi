@@ -44,6 +44,9 @@ h2 { font-size: 1.2em }
 div.phase {
   margin-top: 0.5em;
 }
+.done {
+  color: #666666;
+}
 .phase h3 {
   display: inline;
   font-size: 1em;
@@ -175,7 +178,12 @@ getStatus = function() {
         var html = "";
         for (var i = 0; i < data["phases"].length; ++i) {
           var phase = data["phases"][i];
-          html += "<div class='phase'>";
+          if (data["status"] == "processing" && data["phases"].length == i+1) {
+            var phasestatus = "current";
+          } else {
+            var phasestatus = "done";
+          }
+          html += "<div class='phase " + phasestatus + "'>";
           html += "<h3>" + phase["name"] + "</h3>" + "<p>" + phase["description"] + "</p>";
           if (phase["warnings"].length > 0) {
             var warnings = phase["warnings"];
