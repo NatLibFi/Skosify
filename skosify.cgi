@@ -336,10 +336,15 @@ def process_form(form):
     options.append('--no-break-cycles')
   options = ' '.join(options)
 
-  # start a background process
+  # start a background skosify process
   cmd = "%s %s --debug --output %s --log %s %s >%s 2>%s" % \
     (skosifyscript, options, outputfn, logfn, inputfn, stdout, stderr)
   at = subprocess.Popen(["at", "now"], stdin=subprocess.PIPE)
+  at.communicate(input=cmd)
+
+  # clean up the temporary directory tomorrow (i.e. after 24 hours)
+  cmd = "rm -r %s" % tempdir
+  at = subprocess.Popen(["at", "tomorrow"], stdin=subprocess.PIPE)
   at.communicate(input=cmd)
   
   print "Status: 303"
