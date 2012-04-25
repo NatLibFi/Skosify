@@ -36,16 +36,30 @@ h1 {
   margin: 0 1em 0 0;
   color: #ffffff;
 }
-h2 { font-size: 1em }
+h2 { font-size: 1.2em }
 #body {
   min-height: 20em;
   padding: 1em 1em;
 }
-h3 {
+div.phase {
+  margin-top: 0.5em;
+}
+.phase h3 {
   display: inline;
   font-size: 1em;
   font-weight: bold;
-  margin-right: 0.5em;
+  margin: 0 0.5em 0 0;
+}
+.phase p {
+  display: inline;
+  margin: 0 0 0 0;
+}
+.phase h4 {
+  margin: 0 0 0 2em;
+}
+.phase ul {
+  margin: 0 0 0 4em;
+  padding: 0;
 }
 form {
   padding: 1em 1em;
@@ -61,8 +75,11 @@ fieldset {
 .buttons {
   margin-top: 1em;
 }
-.warnings li {
+.warnings {
   color: #800000;
+}
+.infos {
+  color: #603333;
 }
 .error {
   color: #cc0000;
@@ -153,14 +170,15 @@ getStatus = function() {
     if (xhr.readyState == 4) {
       if (xhr.status == 200) {
         var statusDiv = document.getElementById("status");
-        statusDiv.innerHTML = "";
         data = eval("(" + xhr.responseText + ")");
         statusDiv.innerHTML = "<h2>Status: " + data["status"] + "</h2>";
-        var html = "<ul id='phases'>";
-        for (var i = 0; i < data["statuslines"].length; ++i) {
-          var phase = data["statuslines"][i];
-          html += "<li><h3>" + phase["name"] + "</h3>" + phase["description"] + "</li>";
+        var html = "";
+        for (var i = 0; i < data["phases"].length; ++i) {
+          var phase = data["phases"][i];
+          html += "<div class='phase'>";
+          html += "<h3>" + phase["name"] + "</h3>" + "<p>" + phase["description"] + "</p>";
           if (phase["warnings"].length > 0) {
+            html += "<h4 class='warnings'>Warnings</h4>";
             html += "<ul class='warnings'>";
             for (var j = 0; j < phase["warnings"].length; ++j) {
               var warning = phase["warnings"][j];
@@ -168,8 +186,17 @@ getStatus = function() {
             }
             html += "</ul>";
           }
+          if (phase["infos"].length > 0) {
+            html += "<h4 class='infos'>Messages</h4>";
+            html += "<ul class='infos'>";
+            for (var j = 0; j < phase["infos"].length; ++j) {
+              var info = phase["infos"][j];
+              html += "<li>" + info + "</li>";
+            }
+            html += "</ul>";
+          }
+          html += "</div>";
         }
-        html += "</ul>";
         statusDiv.innerHTML += html;
         if (data["status"] == "error") {
           html  = "<h2 class='error'>Error</h2>";
@@ -320,7 +347,7 @@ def start_session(session):
 
 
 def return_status(session):
-  statuslines = []
+  phases = []
   status = "processing"
   error = None
   output = None
@@ -336,14 +363,17 @@ def return_status(session):
 
   if log:
     warnings = []
+    infos = []
     for line in log:
       line = line.strip()
       if line.startswith('DEBUG: Phase'):
-        if len(statuslines) > 0:
-          statuslines[-1]['warnings'] = warnings
+        if len(phases) > 0:
+          phases[-1]['warnings'] = warnings
+          phases[-1]['infos'] = infos
           warnings = []
+          infos = []
         phasename, phasedesc = line.replace('DEBUG: ', '').split(': ')
-        statuslines.append({'name': phasename, 'description': phasedesc, 'warnings': []})
+        phases.append({'name': phasename, 'description': phasedesc, 'warnings': []})
       elif line.startswith('DEBUG: Writing'):
         fn = os.path.basename(line.split()[4])
         output = os.environ['SCRIPT_NAME'] + "/" + session + "/" + fn
@@ -354,10 +384,13 @@ def return_status(session):
         status = "finished"
       elif line.startswith('WARNING: '):
         warnings.append(line.replace('WARNING: ', ''))
+      elif line.startswith('INFO: '):
+        infos.append(line.replace('INFO: ', ''))
 
-  if len(statuslines) > 0:
-    statuslines[-1]['warnings'] = warnings
-  ret = {'statuslines': statuslines, 'status': status, 'error': error,
+  if len(phases) > 0:
+    phases[-1]['warnings'] = warnings
+    phases[-1]['infos'] = infos
+  ret = {'phases': phases, 'status': status, 'error': error,
          'output': output, 'report': report}
 
   import json
