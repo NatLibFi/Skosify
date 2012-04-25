@@ -104,6 +104,12 @@ fieldset {
 }
 
 </style>
+<style id="hidewarnings">
+.warnings .more { display: none; }
+</style>
+<style id="hideinfos">
+.infos .more { display: none; }
+</style>
 """
 
 HEADER = """
@@ -172,7 +178,19 @@ FRONT_PAGE = """<!DOCTYPE html>
 STATUS_SCRIPT = """
 <script type="text/javascript">
 
-getStatus = function() {
+function toggleWarnings() {
+  var style = document.getElementById("hidewarnings");
+  style.disabled = !style.disabled;
+  return false;
+}
+
+function toggleInfos() {
+  var style = document.getElementById("hideinfos");
+  style.disabled = !style.disabled;
+  return false;
+}
+
+function getStatus() {
   var xhr = new XMLHttpRequest();
   xhr.open("GET", "status", true);
   xhr.onreadystatechange = function (ev) {
@@ -193,19 +211,29 @@ getStatus = function() {
           html += "<h3>" + phase["name"] + "</h3>" + "<p>" + phase["description"] + "</p>";
           if (phase["warnings"].length > 0) {
             var warnings = phase["warnings"];
-            html += "<h4 class='warnings'>Warnings (" + warnings.length + ")</h4>";
+            html += "<h4 class='warnings'>Warnings (" + warnings.length + ")";
+            if (phase["warnings"].length > 3) {
+              html += " <a href='#' onclick='return toggleWarnings();'>show / hide full list</a>";
+            }
+            html += "</h4>";
             html += "<ul class='warnings'>";
             for (var j = 0; j < warnings.length; ++j) {
-              html += "<li>" + warnings[j] + "</li>";
+              var cl = (j > 2) ? 'more' : '';
+              html += "<li class='" + cl + "'>" + warnings[j] + "</li>";
             }
             html += "</ul>";
           }
           if (phase["infos"].length > 0) {
             var infos = phase["infos"]
-            html += "<h4 class='infos'>Messages (" + infos.length + ")</h4>";
+            html += "<h4 class='infos'>Messages (" + infos.length + ")";
+            if (phase["infos"].length > 3) {
+              html += " <a href='#' onclick='return toggleInfos();'>show / hide full list</a>";
+            }
+            html += "</h4>";
             html += "<ul class='infos'>";
             for (var j = 0; j < infos.length; ++j) {
-              html += "<li>" + infos[j] + "</li>";
+              var cl = (j > 2) ? 'more' : '';
+              html += "<li class='" + cl + "'>" + infos[j] + "</li>";
             }
             html += "</ul>";
           }
