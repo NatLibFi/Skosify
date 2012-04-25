@@ -319,7 +319,7 @@ def transform_concepts(rdf, typemap):
       else:
         replace_object(rdf, t, newval, predicate=RDF.type)
     else:
-      logging.warning("Don't know what to do with type %s", t)
+      logging.info("Don't know what to do with type %s", t)
       
 
 def transform_literals(rdf, literalmap):
@@ -340,7 +340,7 @@ def transform_literals(rdf, literalmap):
       logging.debug("transform literal %s -> %s", p, newval)
       replace_predicate(rdf, p, newval, subjecttypes=affected_types)
     else:
-      logging.warning("Don't know what to do with literal %s", p)
+      logging.info("Don't know what to do with literal %s", p)
       
 
 def transform_relations(rdf, relationmap):
@@ -361,7 +361,7 @@ def transform_relations(rdf, relationmap):
       logging.debug("transform relation %s -> %s",p, newval)
       replace_predicate(rdf, p, newval, subjecttypes=affected_types)
     else:
-      logging.warning("Don't know what to do with relation %s", p)
+      logging.info("Don't know what to do with relation %s", p)
 
 def transform_labels(rdf, defaultlanguage):
   # fix labels and documentary notes with extra whitespace
@@ -544,7 +544,7 @@ def setup_top_concepts(rdf):
       if broader is None: # yes it is a top concept!
         if (cs, SKOS.hasTopConcept, conc) not in rdf and \
            (conc, SKOS.topConceptOf, cs) not in rdf:
-            logging.warning("Marking loose concept %s as top concept", conc)
+            logging.info("Marking loose concept %s as top concept", conc)
         rdf.add((cs, SKOS.hasTopConcept, conc))
         rdf.add((conc, SKOS.topConceptOf, cs))
 
@@ -700,7 +700,7 @@ def check_hierarchy_visit(rdf, node, parent, break_cycles, status):
       check_hierarchy_visit(rdf, child, node, break_cycles, status)
   elif status.get(node) == 1: # has been entered but not yet done
     if break_cycles:
-      logging.warning("Hierarchy cycle removed at %s -> %s", localname(parent), localname(node))
+      logging.info("Hierarchy cycle removed at %s -> %s", localname(parent), localname(node))
       rdf.remove((node, SKOS.broader, parent))
       rdf.remove((node, SKOS.broaderTransitive, parent))
       rdf.remove((node, SKOSEXT.broaderGeneric, parent))
@@ -708,7 +708,7 @@ def check_hierarchy_visit(rdf, node, parent, break_cycles, status):
       rdf.remove((parent, SKOS.narrower, node))
       rdf.remove((parent, SKOS.narrowerTransitive, node))
     else:
-      logging.warning("Hierarchy cycle detected at %s -> %s, but not removed because break_cycles is not active", localname(parent), localname(node))
+      logging.info("Hierarchy cycle detected at %s -> %s, but not removed because break_cycles is not active", localname(parent), localname(node))
   elif status.get(node) == 2: # is completed already
     pass
   status[node] = 2 # set this node as completed
