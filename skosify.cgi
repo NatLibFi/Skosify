@@ -178,20 +178,20 @@ getStatus = function() {
           html += "<div class='phase'>";
           html += "<h3>" + phase["name"] + "</h3>" + "<p>" + phase["description"] + "</p>";
           if (phase["warnings"].length > 0) {
-            html += "<h4 class='warnings'>Warnings</h4>";
+            var warnings = phase["warnings"];
+            html += "<h4 class='warnings'>Warnings (" + warnings.length + ")</h4>";
             html += "<ul class='warnings'>";
-            for (var j = 0; j < phase["warnings"].length; ++j) {
-              var warning = phase["warnings"][j];
-              html += "<li>" + warning + "</li>";
+            for (var j = 0; j < warnings.length; ++j) {
+              html += "<li>" + warnings[j] + "</li>";
             }
             html += "</ul>";
           }
           if (phase["infos"].length > 0) {
-            html += "<h4 class='infos'>Messages</h4>";
+            var infos = phase["infos"]
+            html += "<h4 class='infos'>Messages (" + infos.length + ")</h4>";
             html += "<ul class='infos'>";
-            for (var j = 0; j < phase["infos"].length; ++j) {
-              var info = phase["infos"][j];
-              html += "<li>" + info + "</li>";
+            for (var j = 0; j < infos.length; ++j) {
+              html += "<li>" + infos[j] + "</li>";
             }
             html += "</ul>";
           }
