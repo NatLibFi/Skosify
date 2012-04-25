@@ -62,6 +62,7 @@ DEFAULT_OPTIONS = {
   'namespace': None,
   'label': None,
   'default_language': None,
+  'preflabel_policy': 'shortest',
   'debug': False,
   'infer': False,
 }
@@ -659,7 +660,7 @@ def cleanup_unreachable(rdf, cs):
     delete_uri(rdf, subj)
     
 
-def check_labels(rdf):
+def check_labels(rdf, preflabel_policy):
   # check that concepts have only one prefLabel per language
   for conc in rdf.subjects(RDF.type, SKOS.Concept):
     prefLabels = {}
@@ -670,11 +671,23 @@ def check_labels(rdf):
       prefLabels[lang].append(label)
     for lang, labels in prefLabels.items():
       if len(labels) > 1:
-        shortest = sorted(labels, key=len)[0]
-        logging.warning("Concept %s has more than one prefLabel@%s: choosing %s", \
-             conc, lang, shortest)
+        if preflabel_policy == 'all':
+          logging.warning("Concept %s has more than one prefLabel@%s, but keeping all of them due to preflabel-policy=all.", \
+             conc, lang)
+          continue
+        
+        if preflabel_policy == 'shortest':
+          chosen = sorted(labels, key=len)[0]
+        elif preflabel_policy == 'longest':
+          chosen = sorted(labels, key=len)[-1]
+        else:
+          logging.critical("Unknown preflabel-policy: %s", preflabel_policy)
+          sys.exit(1)
+
+        logging.warning("Concept %s has more than one prefLabel@%s: choosing %s (policy: %s)", \
+             conc, lang, chosen, preflabel_policy)
         for label in labels:
-          if label != shortest:
+          if label != chosen:
             rdf.remove((conc, SKOS.prefLabel, label))
             rdf.add((conc, SKOS.altLabel, label))
 
@@ -825,7 +838,7 @@ def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
   
   logging.debug("Phase 9: Checking labels")
   # check for duplicate labels
-  check_labels(voc)
+  check_labels(voc, options.preflabel_policy)
   
 
   processtime = time.time()
@@ -858,6 +871,7 @@ def get_option_parser(defaults):
   parser.add_option('-s', '--namespace', type='string', help='Namespace of vocabulary (usually optional; used to create a ConceptScheme)')
   parser.add_option('-L', '--label', type='string', help='Label/title for the vocabulary (usually optional; used to label a ConceptScheme)')
   parser.add_option('-l', '--default-language', type='string', help='Language tag to set for labels with no defined language.')
+  parser.add_option('-p', '--preflabel-policy', type='string', help='Policy for handling multiple prefLabels with the same language tag. Possible values: shortest, longest, all.')
   parser.add_option('-f', '--from-format', type='string', help='Input format. Default is to detect format based on file extension. Possible values: xml, n3, turtle, nt...')
   parser.add_option('-F', '--to-format', type='string', help='Output format. Default is to detect format based on file extension. Possible values: xml, n3, turtle, nt...')
   parser.add_option('-I', '--infer', action="store_true", help='Perform RDFS subclass/subproperty inference before transforming input.')
