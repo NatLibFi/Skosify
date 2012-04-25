@@ -374,8 +374,8 @@ def return_output(session, filename):
     print "Content-Type: text/plain\n"
   elif filename.endswith('.n3'):
     print "Content-Type: text/n3\n"
-  else: 
-    print "Content-Type: text/plain\n"
+  else: # default is RDF/XML
+    print "Content-Type: application/rdf+xml\n"
 
   tempdir = os.path.join(tempfile.gettempdir(), TEMPDIR_PREFIX + session)
   outputfn = os.path.join(tempdir, filename)
@@ -383,7 +383,7 @@ def return_output(session, filename):
   sys.exit()
 
 def return_report(session):
-  print "Content-Type: text/plain\n"
+  print "Content-Type: text/plain; charset=UTF-8\n"
   tempdir = os.path.join(tempfile.gettempdir(), TEMPDIR_PREFIX + session)
   logfn = os.path.join(tempdir, LOGFILE)
   print open(logfn, "r").read()
