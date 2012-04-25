@@ -71,9 +71,15 @@ form {
   max-width: 32em;
   background-color: #eeeeee;
 }
+form p {
+  margin: 0 0 0.5em 0;
+  font-weight: bold;
+  font-size: small;
+}
 fieldset {
   margin-top: 1em;
-  border: 1px solid #999999;
+  border: 1px solid #dddddd;
+  background-color: #f7f7f7;
 }
 .buttons {
   margin-top: 1em;
