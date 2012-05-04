@@ -15,7 +15,10 @@ TEMPDIR_PREFIX = 'skosify-cgi'
 LOGFILE = "log.txt"
 
 # maximum input file size, in kilobytes
-MAX_FILE_SIZE = 5120
+MAX_FILE_SIZE = 5120 # default
+# allow overriding value using environment variable
+if 'SKOSIFY_MAX_FILE_SIZE' in os.environ:
+  MAX_FILE_SIZE = int(os.environ['SKOSIFY_MAX_FILE_SIZE'])
 
 STYLESHEET = """
 <style type="text/css">
