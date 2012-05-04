@@ -195,12 +195,24 @@ def setup_namespaces(rdf, namespaces):
   for prefix, uri in namespaces.items():
     rdf.namespace_manager.bind(prefix, uri)
 
-def get_concept_scheme(rdf):
-  """Return a skos:ConceptScheme contained in the model, or None if not present."""
+def get_concept_scheme(rdf, label=None, language=None):
+  """Return a skos:ConceptScheme contained in the model, or None if not present. Optionally add a label if the concept scheme doesn't have a label."""
   # add explicit type
   for s,o in rdf.subject_objects(SKOS.inScheme):
     rdf.add((o, RDF.type, SKOS.ConceptScheme))
-  return rdf.value(None, RDF.type, SKOS.ConceptScheme, any=True)
+  cs = rdf.value(None, RDF.type, SKOS.ConceptScheme, any=True)
+
+  # check whether the concept scheme is unlabeled, and label it if possible
+  labels = list(rdf.objects(cs, RDFS.label)) + \
+           list(rdf.objects(cs, SKOS.prefLabel))
+  if len(labels) == 0:
+    if not label:
+      logging.warning("Unlabeled concept scheme detected. Use --label option to set the concept scheme label.")
+    else:
+      logging.info("Unlabeled concept scheme detected. Setting label to '%s'" % label)
+      rdf.add((cs, RDFS.label, Literal(label, language)))
+
+  return cs
 
 def detect_namespace(rdf):
   """Try to automatically detect the URI namespace of the vocabulary. Return namespace as URIRef."""
@@ -809,7 +821,7 @@ def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
   transform_collections(voc)
 
   # find/create concept scheme
-  cs = get_concept_scheme(voc)
+  cs = get_concept_scheme(voc, label=options.label, language=options.default_language)
   if not cs:
     cs = create_concept_scheme(voc, options.namespace,
                                label=options.label,
