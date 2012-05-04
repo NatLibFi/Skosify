@@ -1,5 +1,23 @@
 Skosify release notes
 
+v0.5 - 2012-05-04
+
+Online version (#16)
+Optionally correct unlabeled concept schemes (#13)
+Detect referred concept schemes and add rdf:type (#14)
+Clean up transitive/narrower relationships (#15)
+Make cycle removal optional (#17)
+Make cleanup of related relationships optional (#18)
+Support different prefLabel policies (#20)
+Switch meaning of -i/-I options (r106)
+Use standard Python logging module (r97)
+Support --log option to specify a log file (r107)
+Catch parsing errors properly (r108)
+
+v0.4 
+
+Intermediate version. Not really released.
+
 v0.3 - 2012-02-16
 
 New features (with issue numbers):
