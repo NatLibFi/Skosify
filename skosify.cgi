@@ -295,6 +295,7 @@ def start_http(mimetype=None, headers={}):
     print "Content-Type: %s" % mimetype
   for name, value in headers.items():
     print "%s: %s" % (name, value)
+  print "Cache-Control: no-cache"
   print # end of headers
 
 # function to print an error message & code and exit
