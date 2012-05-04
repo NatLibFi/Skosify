@@ -289,19 +289,23 @@ STATUS_PAGE = """<!DOCTYPE html>
 </html>
 """ % (STYLESHEET, STATUS_SCRIPT, HEADER, FOOTER)
 
-
+# function to start HTTP headers
+def start_http(mimetype=None, headers={}):
+  if mimetype:
+    print "Content-Type: %s" % mimetype
+  for name, value in headers.items():
+    print "%s: %s" % (name, value)
+  print # end of headers
 
 # function to print an error message & code and exit
 def return_error(code, message):
-  print "Content-Type: text/plain"
-  print "Status:", code
-  print
+  start_http("text/plain", {"Status": code})
   print code, message
   sys.exit()
 
 
 def front_page():
-  print "Content-Type: text/html\n"
+  start_http("text/html")
   print FRONT_PAGE
   sys.exit()
 
@@ -389,18 +393,16 @@ def process_form(form):
   at = subprocess.Popen(["at", "tomorrow"], stdin=subprocess.PIPE)
   at.communicate(input=cmd)
   
-  print "Status: 303"
-  print "Location:", os.environ['SCRIPT_NAME'] + "/" + session + "/"
-  print # end of CGI headers
-  sys.exit()  
-  
+  loc = os.environ['SCRIPT_NAME'] + "/" + session + "/"
+  start_http(headers={"Status": "303", "Location": loc})
+  sys.exit()
 
 def start_session(session):
   tempdir = os.path.join(tempfile.gettempdir(), TEMPDIR_PREFIX + session)
   if not os.path.exists(tempdir):
     return_error(404, "Not Found")
 
-  print "Content-Type: text/html\n"
+  start_http("text/html")
   print STATUS_PAGE
   sys.exit()
 
@@ -455,21 +457,21 @@ def return_status(session):
          'output': output, 'report': report}
 
   import json
-  print "Content-Type: application/json\n"
+  start_http("application/json")
   print json.dumps(ret)
   sys.exit()  
 
 def return_output(session, filename):
   if filename.endswith('.rdf'):
-    print "Content-Type: application/rdf+xml\n"
+    start_http("application/rdf+xml")
   elif filename.endswith('.ttl'):
-    print "Content-Type: text/turtle\n"
+    start_http("text/turtle")
   elif filename.endswith('.nt'):
-    print "Content-Type: text/plain\n"
+    start_http("text/plain")
   elif filename.endswith('.n3'):
-    print "Content-Type: text/n3\n"
+    start_http("text/n3")
   else: # default is RDF/XML
-    print "Content-Type: application/rdf+xml\n"
+    start_http("application/rdf+xml")
 
   tempdir = os.path.join(tempfile.gettempdir(), TEMPDIR_PREFIX + session)
   outputfn = os.path.join(tempdir, filename)
@@ -477,7 +479,7 @@ def return_output(session, filename):
   sys.exit()
 
 def return_report(session):
-  print "Content-Type: text/plain; charset=UTF-8\n"
+  start_http("text/plain; charset=UTF-8")
   tempdir = os.path.join(tempfile.gettempdir(), TEMPDIR_PREFIX + session)
   logfn = os.path.join(tempdir, LOGFILE)
   print open(logfn, "r").read()
