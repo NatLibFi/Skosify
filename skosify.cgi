@@ -342,14 +342,18 @@ def process_form(form):
   session = os.path.basename(tempdir).replace(TEMPDIR_PREFIX, '')
 
   # determine where to find the skosify.py script, to be invoked by at
-  cgiscript = sys.argv[0]
-  linktarget = os.readlink(cgiscript)
-  if linktarget.startswith('/'): # absolute already
-    abslinktarget = linktarget
+  if 'SKOSIFY_PATH' in os.environ:
+    # path explicitly set by environment variable, so use the setting
+    skosifyscript = os.environ['SKOSIFY_PATH']
   else:
-    abslinktarget = os.path.abspath(os.path.join(os.path.dirname(cgiscript), linktarget))
-  
-  skosifyscript = os.path.join(os.path.dirname(abslinktarget), "skosify.py")
+    # not set, so determine the location by following CGI symlink
+    cgiscript = sys.argv[0]
+    linktarget = os.readlink(cgiscript)
+    if linktarget.startswith('/'): # absolute already
+      abslinktarget = linktarget
+    else:
+      abslinktarget = os.path.abspath(os.path.join(os.path.dirname(cgiscript), linktarget))
+    skosifyscript = os.path.join(os.path.dirname(abslinktarget), "skosify.py")
 
   stdout = os.path.join(tempdir, "stdout")
   stderr = os.path.join(tempdir, "stderr")
