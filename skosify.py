@@ -394,7 +394,7 @@ def transform_labels(rdf, defaultlanguage):
       # set default language
       if defaultlanguage and label.language is None:
         logging.warning("Setting default language of '%s' to %s", label, defaultlanguage)
-        newlabel = Literal(label, defaultlanguage)
+        newlabel = Literal(unicode(label), defaultlanguage)
         rdf.remove((conc, labelProp, label))
         rdf.add((conc, labelProp, newlabel))
         
