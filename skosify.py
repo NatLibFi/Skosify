@@ -59,6 +59,9 @@ DEFAULT_OPTIONS = {
   'aggregates': False,
   'keep_related': False,
   'break_cycles': False,
+  'cleanup_classes': False,
+  'cleanup_properties': False,
+  'cleanup_unreachable': False,
   'namespace': None,
   'label': None,
   'default_language': None,
@@ -835,9 +838,12 @@ def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
 
   logging.debug("Phase 6: Cleaning up")
   # clean up unused/unnecessary class/property definitions and unreachable triples
-  cleanup_properties(voc)
-  cleanup_classes(voc)
-  cleanup_unreachable(voc, cs)
+  if options.cleanup_properties:
+    cleanup_properties(voc)
+  if options.cleanup_classes:
+    cleanup_classes(voc)
+  if options.cleanup_unreachable:
+    cleanup_unreachable(voc, cs)
   
   logging.debug("Phase 7: Setting up concept schemes and top concepts")
   # setup inScheme and hasTopConcept
@@ -898,6 +904,12 @@ def get_option_parser(defaults):
   parser.add_option('-r', '--no-keep-related', dest="keep_related", action="store_false", help="Remove skos:related relationships within the same hierarchy.")
   parser.add_option('-B', '--break-cycles', action="store_true", help="Break any cycles in the skos:broader hierarchy.")
   parser.add_option('-b', '--no-break-cycles', dest="break_cycles", action="store_false", help="Don't break cycles in the skos:broader hierarchy.")
+  parser.add_option('--cleanup-classes', action="store_true", help="Remove definitions of classes with no instances.")
+  parser.add_option('--no-cleanup-classes', action="store_false", help="Don't remove definitions of classes with no instances.")
+  parser.add_option('--cleanup-properties', action="store_true", help="Remove definitions of properties which have not been used.")
+  parser.add_option('--no-cleanup-properties', action="store_false", help="Don't remove definitions of properties which have not been used.")
+  parser.add_option('--cleanup-unreachable', action="store_true", help="Remove triples which can not be reached by a traversal from the main vocabulary graph.")
+  parser.add_option('--no-cleanup-unreachable', action="store_false", help="Don't triples which can not be reached by a traversal from the main vocabulary graph.")
   parser.add_option('-D', '--debug', action="store_true", help='Show debug output.')
   parser.add_option('-d', '--no-debug', dest="debug", action="store_false", help='Hide debug output.')
   
