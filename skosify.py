@@ -659,14 +659,14 @@ def find_reachable(rdf, res):
   
   return seen
 
-def cleanup_unreachable(rdf, cs):
-  """Remove triples which cannot be reached from the concept scheme by graph traversal."""  
+def cleanup_unreachable(rdf):
+  """Remove triples which cannot be reached from the concepts by graph traversal."""  
   
   all_subjects = set(rdf.subjects())
   
   logging.debug("total subject resources: %d", len(all_subjects))
   
-  reachable = find_reachable(rdf, cs)
+  reachable = find_reachable(rdf, SKOS.Concept)
   nonreachable = all_subjects - reachable
 
   logging.debug("deleting %s non-reachable resources", len(nonreachable))
@@ -843,7 +843,7 @@ def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
   if options.cleanup_classes:
     cleanup_classes(voc)
   if options.cleanup_unreachable:
-    cleanup_unreachable(voc, cs)
+    cleanup_unreachable(voc)
   
   logging.debug("Phase 7: Setting up concept schemes and top concepts")
   # setup inScheme and hasTopConcept
