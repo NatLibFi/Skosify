@@ -547,6 +547,16 @@ def enrich_relations(rdf, use_narrower, use_transitive):
       rdf.remove((s, SKOS.broaderTransitive, o))
     for s,o in rdf.subject_objects(SKOS.narrowerTransitive):
       rdf.remove((s, SKOS.narrowerTransitive, o))
+  
+  # hasTopConcept -> topConceptOf
+  for s,o in rdf.subject_objects(SKOS.hasTopConcept):
+    rdf.add((o, SKOS.topConceptOf, s))
+  # topConceptOf -> hasTopConcept
+  for s,o in rdf.subject_objects(SKOS.topConceptOf):
+    rdf.add((o, SKOS.hasTopConcept, s))
+  # topConceptOf -> inScheme
+  for s,o in rdf.subject_objects(SKOS.topConceptOf):
+    rdf.add((s, SKOS.inScheme, o))
 
 def setup_top_concepts(rdf):
   """Determine the top concepts of each concept scheme and mark them using hasTopConcept/topConceptOf."""
@@ -560,7 +570,7 @@ def setup_top_concepts(rdf):
       if broader is None: # yes it is a top concept!
         if (cs, SKOS.hasTopConcept, conc) not in rdf and \
            (conc, SKOS.topConceptOf, cs) not in rdf:
-            logging.info("Marking loose concept %s as top concept", conc)
+            logging.info("Marking loose concept %s as top concept of scheme %s", conc, cs)
         rdf.add((cs, SKOS.hasTopConcept, conc))
         rdf.add((conc, SKOS.topConceptOf, cs))
 
