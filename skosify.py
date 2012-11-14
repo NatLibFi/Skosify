@@ -203,7 +203,15 @@ def get_concept_scheme(rdf, label=None, language=None):
   # add explicit type
   for s,o in rdf.subject_objects(SKOS.inScheme):
     rdf.add((o, RDF.type, SKOS.ConceptScheme))
-  cs = rdf.value(None, RDF.type, SKOS.ConceptScheme, any=True)
+  css = list(rdf.subjects(RDF.type, SKOS.ConceptScheme))
+  if len(css) > 1:
+    css.sort()
+    cs = css[0]
+    logging.warning("Multiple concept schemes found. Selecting %s as default concept scheme.", cs)
+  elif len(css) == 1:
+    cs = css[0]
+  else:
+    cs = None
 
   # check whether the concept scheme is unlabeled, and label it if possible
   labels = list(rdf.objects(cs, RDFS.label)) + \
@@ -241,8 +249,16 @@ def create_concept_scheme(rdf, ns, lname='conceptscheme', label=None, language=N
   ont = None
   if not ns:
     # see if there's an owl:Ontology and use that to determine namespace
-    # FIXME what if there are several owl:Ontology instances? (TERO)
-    ont = rdf.value(None, RDF.type, OWL.Ontology, any=True)
+    onts = list(rdf.subjects(RDF.type, OWL.Ontology))
+    if len(onts) > 1:
+      onts.sort()
+      ont = onts[0]
+      logging.warning("Multiple owl:Ontology instances found. Creating concept scheme from %s.", ont)
+    elif len(onts) == 1:
+      ont = onts[0]
+    else:
+      ont = None
+    
     if not ont:
       logging.info("No skos:ConceptScheme or owl:Ontology found. Using namespace auto-detection for creating concept scheme.")
       ns = detect_namespace(rdf)
