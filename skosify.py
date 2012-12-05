@@ -202,7 +202,10 @@ def get_concept_scheme(rdf, label=None, language=None):
   """Return a skos:ConceptScheme contained in the model, or None if not present. Optionally add a label if the concept scheme doesn't have a label."""
   # add explicit type
   for s,o in rdf.subject_objects(SKOS.inScheme):
-    rdf.add((o, RDF.type, SKOS.ConceptScheme))
+    if not isinstance(o, Literal):
+      rdf.add((o, RDF.type, SKOS.ConceptScheme))
+    else:
+      logging.warning("Literal value %s for skos:inScheme detected, ignoring.", o)
   css = list(rdf.subjects(RDF.type, SKOS.ConceptScheme))
   if len(css) > 1:
     css.sort()
