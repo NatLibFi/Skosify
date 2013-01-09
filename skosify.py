@@ -530,6 +530,37 @@ def enrich_relations(rdf, use_narrower, use_transitive):
      (broaderTransitive, and also narrowerTransitive if use_narrower is
      True) and include them in the model."""
 
+  # 1. first enrich mapping relationships (because they affect regular ones)
+
+  # relatedMatch goes both ways
+  for s,o in rdf.subject_objects(SKOS.relatedMatch):
+    rdf.add((s, SKOS.related, o))
+    rdf.add((o, SKOS.related, s))
+    rdf.add((o, SKOS.relatedMatch, s))
+
+  # exactMatch goes both ways
+  for s,o in rdf.subject_objects(SKOS.exactMatch):
+    rdf.add((o, SKOS.exactMatch, s))
+
+  # closeMatch goes both ways
+  for s,o in rdf.subject_objects(SKOS.closeMatch):
+    rdf.add((o, SKOS.closeMatch, s))
+
+  # broadMatch -> narrowMatch
+  if use_narrower: 
+    for s,o in rdf.subject_objects(SKOS.broadMatch):
+      rdf.add((s, SKOS.broader, o))
+      rdf.add((o, SKOS.narrowMatch, s))
+      rdf.add((o, SKOS.narrower, s))
+  # narrowMatch -> broadMatch
+  for s,o in rdf.subject_objects(SKOS.narrowMatch):
+    rdf.add((o, SKOS.broadMatch, s))
+    rdf.add((o, SKOS.broader, s))
+    if not use_narrower: 
+      rdf.remove((s, SKOS.narrowMatch, o))
+
+  # 2. then enrich regular relationships
+
   # related goes both ways
   for s,o in rdf.subject_objects(SKOS.related):
     rdf.add((o, SKOS.related, s))
