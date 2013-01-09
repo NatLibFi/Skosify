@@ -402,7 +402,7 @@ def transform_labels(rdf, defaultlanguage):
   # fix labels and documentary notes with extra whitespace
   for labelProp in (SKOS.prefLabel, SKOS.altLabel, SKOS.hiddenLabel, SKOSEXT.candidateLabel,
                     SKOS.note, SKOS.scopeNote, SKOS.definition, SKOS.example,
-                    SKOS.historyNote, SKOS.editorialNote, SKOS.changeNote):
+                    SKOS.historyNote, SKOS.editorialNote, SKOS.changeNote, RDFS.label):
     for conc, label in rdf.subject_objects(labelProp):
       if not isinstance(label, Literal):
         continue
