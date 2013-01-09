@@ -705,10 +705,11 @@ def cleanup_unreachable(rdf):
     
 
 def check_labels(rdf, preflabel_policy):
-  # check that concepts have only one prefLabel per language
-  for conc in rdf.subjects(RDF.type, SKOS.Concept):
+  # check that resources have only one prefLabel per language
+  resources = set((res for res,label in rdf.subject_objects(SKOS.prefLabel)))
+  for res in resources:
     prefLabels = {}
-    for label in rdf.objects(conc, SKOS.prefLabel):
+    for label in rdf.objects(res, SKOS.prefLabel):
       lang = label.language
       if lang not in prefLabels:
         prefLabels[lang] = []
@@ -716,8 +717,8 @@ def check_labels(rdf, preflabel_policy):
     for lang, labels in prefLabels.items():
       if len(labels) > 1:
         if preflabel_policy == 'all':
-          logging.warning("Concept %s has more than one prefLabel@%s, but keeping all of them due to preflabel-policy=all.", \
-             conc, lang)
+          logging.warning("Resource %s has more than one prefLabel@%s, but keeping all of them due to preflabel-policy=all.", \
+             res, lang)
           continue
         
         if preflabel_policy == 'shortest':
@@ -728,26 +729,26 @@ def check_labels(rdf, preflabel_policy):
           logging.critical("Unknown preflabel-policy: %s", preflabel_policy)
           sys.exit(1)
 
-        logging.warning("Concept %s has more than one prefLabel@%s: choosing %s (policy: %s)", \
-             conc, lang, chosen, preflabel_policy)
+        logging.warning("Resource %s has more than one prefLabel@%s: choosing %s (policy: %s)", \
+             res, lang, chosen, preflabel_policy)
         for label in labels:
           if label != chosen:
-            rdf.remove((conc, SKOS.prefLabel, label))
-            rdf.add((conc, SKOS.altLabel, label))
+            rdf.remove((res, SKOS.prefLabel, label))
+            rdf.add((res, SKOS.altLabel, label))
 
   # check overlap between disjoint label properties
-  for conc,label in find_prop_overlap(rdf, SKOS.prefLabel, SKOS.altLabel):
-    logging.warning("Concept %s has '%s'@%s as both prefLabel and altLabel; removing altLabel", \
-         conc, label, label.language)
-    rdf.remove((conc, SKOS.altLabel, label))
-  for conc,label in find_prop_overlap(rdf, SKOS.prefLabel, SKOS.hiddenLabel):
-    logging.warning("Concept %s has '%s'@%s as both prefLabel and hiddenLabel; removing hiddenLabel", \
-         conc, label, label.language)
-    rdf.remove((conc, SKOS.hiddenLabel, label))
-  for conc,label in find_prop_overlap(rdf, SKOS.altLabel, SKOS.hiddenLabel):
-    logging.warning("Concept %s has '%s'@%s as both altLabel and hiddenLabel; removing hiddenLabel", \
-         conc, label, label.language)
-    rdf.remove((conc, SKOS.hiddenLabel, label))
+  for res,label in find_prop_overlap(rdf, SKOS.prefLabel, SKOS.altLabel):
+    logging.warning("Resource %s has '%s'@%s as both prefLabel and altLabel; removing altLabel", \
+         res, label, label.language)
+    rdf.remove((res, SKOS.altLabel, label))
+  for res,label in find_prop_overlap(rdf, SKOS.prefLabel, SKOS.hiddenLabel):
+    logging.warning("Resource %s has '%s'@%s as both prefLabel and hiddenLabel; removing hiddenLabel", \
+         res, label, label.language)
+    rdf.remove((res, SKOS.hiddenLabel, label))
+  for res,label in find_prop_overlap(rdf, SKOS.altLabel, SKOS.hiddenLabel):
+    logging.warning("Resource %s has '%s'@%s as both altLabel and hiddenLabel; removing hiddenLabel", \
+         res, label, label.language)
+    rdf.remove((res, SKOS.hiddenLabel, label))
   
 
 def check_hierarchy_visit(rdf, node, parent, break_cycles, status):
