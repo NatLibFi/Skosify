@@ -776,8 +776,14 @@ def check_hierarchy(rdf, break_cycles, keep_related):
   starttime = time.time()
 
   top_concepts = rdf.subject_objects(SKOS.hasTopConcept)
+  status = {}
   for cs,root in top_concepts:
-    check_hierarchy_visit(rdf, root, None, break_cycles, status={})
+    check_hierarchy_visit(rdf, root, None, break_cycles, status=status)
+  # double check that all concepts were actually visited in the search,
+  # and visit remaining ones if necessary
+  for conc in rdf.subjects(RDF.type, SKOS.Concept):
+    if conc not in status:
+      check_hierarchy_visit(rdf, conc, None, break_cycles, status=status)
 
   # check overlap between disjoint semantic relations
   # related and broaderTransitive
