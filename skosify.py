@@ -785,8 +785,9 @@ def check_labels(rdf, preflabel_policy):
 def check_hierarchy_visit(rdf, node, parent, break_cycles, status):
   if status.get(node) is None:
     status[node] = 1 # entered
-    for child in rdf.subjects(SKOS.broader, node):
+    for child in sorted(rdf.subjects(SKOS.broader, node)):
       check_hierarchy_visit(rdf, child, node, break_cycles, status)
+    status[node] = 2 # set this node as completed
   elif status.get(node) == 1: # has been entered but not yet done
     if break_cycles:
       logging.info("Hierarchy cycle removed at %s -> %s", localname(parent), localname(node))
@@ -800,7 +801,6 @@ def check_hierarchy_visit(rdf, node, parent, break_cycles, status):
       logging.info("Hierarchy cycle detected at %s -> %s, but not removed because break_cycles is not active", localname(parent), localname(node))
   elif status.get(node) == 2: # is completed already
     pass
-  status[node] = 2 # set this node as completed
 
 def check_hierarchy(rdf, break_cycles, keep_related):
   # check for cycles in the skos:broader hierarchy
