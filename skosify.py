@@ -813,9 +813,14 @@ def check_hierarchy(rdf, break_cycles, keep_related):
     check_hierarchy_visit(rdf, root, None, break_cycles, status=status)
   # double check that all concepts were actually visited in the search,
   # and visit remaining ones if necessary
+  recheck_top_concepts=False
   for conc in rdf.subjects(RDF.type, SKOS.Concept):
     if conc not in status:
+      recheck_top_concepts=True
       check_hierarchy_visit(rdf, conc, None, break_cycles, status=status)
+  if recheck_top_concepts:
+    logging.info("Some concepts not reached in initial cycle detection. Re-checking for loose concepts.")
+    setup_top_concepts(rdf)
 
   # check overlap between disjoint semantic relations
   # related and broaderTransitive
