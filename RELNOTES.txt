@@ -1,5 +1,21 @@
 Skosify release notes
 
+v0.6 - 2013-01-29
+
+Release with mostly minor improvements to the code to improve robustness and
+correct more problems found in SKOS vocabularies in the wild.
+
+Deterministic cycle breaking, also for top level cycles (#26)
+Correct SKOS S14 (no >1 prefLabels per language) for all resources (#24)
+Don't break on literal inScheme values (#25)
+Correct missing language tag and extra whitespace for rdfs:label (#27)
+Better support for multiple concept schemes (#3)
+SKOS inferences for mapping relations (#28)
+SKOS inferences for hasTopConcept/topConceptOf and inScheme (#23)
+Make some cleanups optional and off by default (#22)
+Easier to read --help output with grouped options (r140)
+Added sparqldump utility script (r137, r138)
+
 v0.5 - 2012-05-04
 
 Online version (#16)
