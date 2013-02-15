@@ -56,6 +56,7 @@ DEFAULT_OPTIONS = {
   'to_format': None,
   'narrower': True,
   'transitive': False,
+  'enrich_mappings': True,
   'aggregates': False,
   'keep_related': False,
   'break_cycles': False,
@@ -520,7 +521,7 @@ def transform_aggregate_concepts(rdf, cs, relationmap, aggregates):
       rdf.add((conc, SKOS.inScheme, acs))
 
 
-def enrich_relations(rdf, use_narrower, use_transitive):
+def enrich_relations(rdf, enrich_mappings, use_narrower, use_transitive):
   """Enrich the SKOS relations according to SKOS semantics, including
      subproperties of broader and symmetric related properties. If
      use_narrower is True, include inverse narrower relations for all
@@ -531,33 +532,34 @@ def enrich_relations(rdf, use_narrower, use_transitive):
      True) and include them in the model."""
 
   # 1. first enrich mapping relationships (because they affect regular ones)
+  
+  if enrich_mappings:
+    # relatedMatch goes both ways
+    for s,o in rdf.subject_objects(SKOS.relatedMatch):
+      rdf.add((s, SKOS.related, o))
+      rdf.add((o, SKOS.related, s))
+      rdf.add((o, SKOS.relatedMatch, s))
 
-  # relatedMatch goes both ways
-  for s,o in rdf.subject_objects(SKOS.relatedMatch):
-    rdf.add((s, SKOS.related, o))
-    rdf.add((o, SKOS.related, s))
-    rdf.add((o, SKOS.relatedMatch, s))
+    # exactMatch goes both ways
+    for s,o in rdf.subject_objects(SKOS.exactMatch):
+      rdf.add((o, SKOS.exactMatch, s))
 
-  # exactMatch goes both ways
-  for s,o in rdf.subject_objects(SKOS.exactMatch):
-    rdf.add((o, SKOS.exactMatch, s))
+    # closeMatch goes both ways
+    for s,o in rdf.subject_objects(SKOS.closeMatch):
+      rdf.add((o, SKOS.closeMatch, s))
 
-  # closeMatch goes both ways
-  for s,o in rdf.subject_objects(SKOS.closeMatch):
-    rdf.add((o, SKOS.closeMatch, s))
-
-  # broadMatch -> narrowMatch
-  if use_narrower: 
-    for s,o in rdf.subject_objects(SKOS.broadMatch):
-      rdf.add((s, SKOS.broader, o))
-      rdf.add((o, SKOS.narrowMatch, s))
-      rdf.add((o, SKOS.narrower, s))
-  # narrowMatch -> broadMatch
-  for s,o in rdf.subject_objects(SKOS.narrowMatch):
-    rdf.add((o, SKOS.broadMatch, s))
-    rdf.add((o, SKOS.broader, s))
-    if not use_narrower: 
-      rdf.remove((s, SKOS.narrowMatch, o))
+    # broadMatch -> narrowMatch
+    if use_narrower: 
+      for s,o in rdf.subject_objects(SKOS.broadMatch):
+        rdf.add((s, SKOS.broader, o))
+        rdf.add((o, SKOS.narrowMatch, s))
+        rdf.add((o, SKOS.narrower, s))
+    # narrowMatch -> broadMatch
+    for s,o in rdf.subject_objects(SKOS.narrowMatch):
+      rdf.add((o, SKOS.broadMatch, s))
+      rdf.add((o, SKOS.broader, s))
+      if not use_narrower: 
+        rdf.remove((s, SKOS.narrowMatch, o))
 
   # 2. then enrich regular relationships
 
@@ -906,7 +908,7 @@ def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
 
   logging.debug("Phase 5: Performing SKOS enrichments")
   # enrichments: broader <-> narrower, related <-> related
-  enrich_relations(voc, options.narrower, options.transitive)
+  enrich_relations(voc, options.enrich_mappings, options.narrower, options.transitive)
 
   logging.debug("Phase 6: Cleaning up")
   # clean up unused/unnecessary class/property definitions and unreachable triples
@@ -977,6 +979,8 @@ def get_option_parser(defaults):
   group.add_option('-n', '--no-narrower', dest="narrower", action="store_false", help="Don't include narrower/narrowerGeneric/narrowerPartitive relationships in the output vocabulary.")
   group.add_option('-T', '--transitive', action="store_true", help='Include transitive hierarchy relationships in the output vocabulary.')
   group.add_option('-t', '--no-transitive', dest="transitive", action="store_false", help="Don't include transitive hierarchy relationships in the output vocabulary.")
+  group.add_option('-M', '--enrich-mappings', action="store_true", help='Perform SKOS enrichments on mapping relationships.')
+  group.add_option('-m', '--no-enrich-mappings', dest="enrich_mappings", action="store_false", help="Don't perform SKOS enrichments on mapping relationships.")
   group.add_option('-A', '--aggregates', action="store_true", help='Keep AggregateConcepts completely in the output vocabulary.')
   group.add_option('-a', '--no-aggregates', dest="aggregates", action="store_false", help='Remove AggregateConcepts completely from the output vocabulary.')
   group.add_option('-R', '--keep-related', action="store_true", help="Keep skos:related relationships within the same hierarchy.")
