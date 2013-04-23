@@ -37,6 +37,7 @@ SKOSEXT = Namespace("http://purl.org/finnonto/schema/skosext#")
 OWL = Namespace("http://www.w3.org/2002/07/owl#")
 DC = Namespace("http://purl.org/dc/elements/1.1/")
 DCT = Namespace("http://purl.org/dc/terms/")
+XSD = Namespace("http://www.w3.org/2001/XMLSchema#")
 
 # default namespaces to register in the graph
 DEFAULT_NAMESPACES = {
@@ -46,6 +47,7 @@ DEFAULT_NAMESPACES = {
   'skos': SKOS,
   'dc': DC,
   'dct': DCT,
+  'xsd': XSD,
 }
 
 # default values for config file / command line options
@@ -361,7 +363,7 @@ def transform_concepts(rdf, typemap):
 def transform_literals(rdf, literalmap):
   """Transform YSO-style labels and other literal properties of Concepts into SKOS equivalents."""
   
-  affected_types = (SKOS.Concept, SKOS.Collection)
+  affected_types = (SKOS.Concept, SKOS.Collection, SKOSEXT.DeprecatedConcept)
   
   props = set()
   for t in affected_types:
@@ -382,7 +384,7 @@ def transform_literals(rdf, literalmap):
 def transform_relations(rdf, relationmap):
   """Transform YSO-style concept relations into SKOS equivalents."""
 
-  affected_types = (SKOS.Concept, SKOS.Collection)
+  affected_types = (SKOS.Concept, SKOS.Collection, SKOSEXT.DeprecatedConcept)
 
   props = set()
   for t in affected_types:
@@ -521,6 +523,23 @@ def transform_aggregate_concepts(rdf, cs, relationmap, aggregates):
     for conc in aggregate_concepts:
       rdf.add((conc, SKOS.inScheme, acs))
 
+def transform_deprecated_concepts(rdf, cs):
+  """Transform deprecated concepts so they are in their own concept scheme"""
+
+  deprecated_concepts = []
+  
+  for conc in rdf.subjects(RDF.type, SKOSEXT.DeprecatedConcept):
+    rdf.add((conc, RDF.type, SKOS.Concept))
+    rdf.add((conc, OWL.deprecated, Literal("true", datatype=XSD.boolean)))
+    deprecated_concepts.append(conc)
+  
+  if len(deprecated_concepts) > 0:
+    ns = cs.replace(localname(cs), '')
+    dcs = create_concept_scheme(rdf, ns, 'deprecatedconceptscheme')
+    logging.debug("creating deprecated concept scheme %s", dcs)
+    for conc in deprecated_concepts:
+      rdf.add((conc, SKOS.inScheme, dcs))
+    
 
 def enrich_relations(rdf, enrich_mappings, use_narrower, use_transitive):
   """Enrich the SKOS relations according to SKOS semantics, including
@@ -895,7 +914,7 @@ def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
   # special transforms for labels: whitespace, prefLabel vs altLabel
   transform_labels(voc, options.default_language)
 
-  # special transforms for collections and aggregate concepts
+  # special transforms for collections + aggregate and deprecated concepts
   transform_collections(voc)
 
   # find/create concept scheme
@@ -906,6 +925,7 @@ def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
                                language=options.default_language)
 
   transform_aggregate_concepts(voc, cs, relationmap, options.aggregates)
+  transform_deprecated_concepts(voc, cs)
 
   logging.debug("Phase 5: Performing SKOS enrichments")
   # enrichments: broader <-> narrower, related <-> related
