@@ -453,22 +453,23 @@ def transform_labels(rdf, defaultlanguage):
 
 def transform_collections(rdf):
   for coll in rdf.subjects(RDF.type, SKOS.Collection):
-    broaders = set(rdf.objects(coll, SKOSEXT.broaderGeneric))
-    narrowers = set(rdf.subjects(SKOSEXT.broaderGeneric, coll))
-    # remove the Collection from the hierarchy
-    for b in broaders:
-      rdf.remove((coll, SKOSEXT.broaderGeneric, b))
-    # replace the broaderGeneric relationship with inverse skos:member
-    for n in narrowers:
-      rdf.remove((n, SKOSEXT.broaderGeneric, coll))
-      rdf.add((coll, SKOS.member, n))
-      # add a direct broaderGeneric relation to the broaders of the collection
+    for prop in (SKOS.broader, SKOSEXT.broaderGeneric):
+      broaders = set(rdf.objects(coll, prop))
+      narrowers = set(rdf.subjects(prop, coll))
+      # remove the Collection from the hierarchy
       for b in broaders:
-        rdf.add((n, SKOSEXT.broaderGeneric, b))
+        rdf.remove((coll, prop, b))
+      # replace the broader relationship with inverse skos:member
+      for n in narrowers:
+        rdf.remove((n, prop, coll))
+        rdf.add((coll, SKOS.member, n))
+        # add a direct broader relation to the broaders of the collection
+        for b in broaders:
+          rdf.add((n, prop, b))
 
     # avoid using SKOS semantic relations as they're only meant for concepts
     # FIXME should maybe use some substitute for exactMatch for collections?
-    for relProp in (SKOS.semanticRelation, 
+    for relProp in (SKOS.semanticRelation,
                     SKOS.broader, SKOS.narrower, SKOS.related,
                     SKOS.broaderTransitive, SKOS.narrowerTransitive,
                     SKOS.mappingRelation,
