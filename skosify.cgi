@@ -390,7 +390,7 @@ def process_form(form):
   at.communicate(input=cmd)
 
   # clean up the temporary directory tomorrow (i.e. after 24 hours)
-  cmd = "rm -r %s" % tempdir
+  cmd = "rm -rf %s" % tempdir
   at = subprocess.Popen(["at", "tomorrow"], stdin=subprocess.PIPE)
   at.communicate(input=cmd)
   
