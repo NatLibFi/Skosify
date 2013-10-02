@@ -118,15 +118,20 @@ def in_general_ns(uri):
 
 def replace_subject(rdf, fromuri, touri):
   """Replace all occurrences of fromuri as subject with touri in the given
-     model. If touri=None, will delete all occurrences of fromuri instead."""
+     model. If touri=None, will delete all occurrences of fromuri instead.
+     If touri is a list or tuple of URIRefs, all values will be inserted."""
   if fromuri == touri: return
   for p, o in rdf.predicate_objects(fromuri):
     rdf.remove((fromuri, p, o))
-    if touri is not None: rdf.add((touri, p, o))
+    if touri is not None:
+      if not isinstance(touri, (list, tuple)): touri = [touri]
+      for uri in touri:
+        rdf.add((uri, p, o))
 
-def replace_predicate(rdf, fromuri, touri, subjecttypes=None):
+def replace_predicate(rdf, fromuri, touri, subjecttypes=None, inverse=False):
   """Replace all occurrences of fromuri as predicate with touri in the given
      model. If touri=None, will delete all occurrences of fromuri instead.
+     If touri is a list or tuple of URIRef, all values will be inserted.
      If a subjecttypes sequence is given, modify only those triples where
      the subject is one of the provided types."""
 
@@ -138,20 +143,29 @@ def replace_predicate(rdf, fromuri, touri, subjecttypes=None):
         if (s, RDF.type, t) in rdf: typeok = True
       if not typeok: continue
     rdf.remove((s, fromuri, o))
-    if touri is not None: rdf.add((s, touri, o))
+    if touri is not None:
+      if not isinstance(touri, (list, tuple)): touri = [touri]
+      for uri in touri:
+        rdf.add((s, uri, o))
 
 def replace_object(rdf, fromuri, touri, predicate=None):
   """Replace all occurrences of fromuri as object with touri in the given
-     model. If touri=None, will delete all occurrences of fromuri instead. If
-     predicate is given, modify only triples with the given predicate."""
+     model. If touri=None, will delete all occurrences of fromuri instead. 
+     If touri is a list or tuple of URIRef, all values will be inserted.
+     If predicate is given, modify only triples with the given predicate."""
   if fromuri == touri: return
   for s, p in rdf.subject_predicates(fromuri):
     if predicate is not None and p != predicate: continue
     rdf.remove((s, p, fromuri))
-    if touri is not None: rdf.add((s, p, touri))
+    if touri is not None:
+      if not isinstance(touri, (list, tuple)): touri = [touri]
+      for uri in touri:
+        rdf.add((s, p, uri))
 
 def replace_uri(rdf, fromuri, touri):
-  """Replace all occurrences of fromuri with touri in the given model. If touri=None, will delete all occurrences of fromuri instead."""
+  """Replace all occurrences of fromuri with touri in the given model.
+     If touri is a list or tuple of URIRef, all values will be inserted.
+     If touri=None, will delete all occurrences of fromuri instead."""
   replace_subject(rdf, fromuri, touri)
   replace_predicate(rdf, fromuri, touri)
   replace_object(rdf, fromuri, touri)
@@ -344,13 +358,14 @@ def transform_concepts(rdf, typemap):
   for t in types:
     if mapping_match(t, typemap):
       newval = mapping_get(t, typemap)
-      logging.debug("transform class %s -> %s", t, newval)
-      if newval is None: # delete all instances
+      newuris = [v[0] for v in newval]
+      logging.debug("transform class %s -> %s", t, str(newuris))
+      if newuris[0] is None: # delete all instances
         for inst in rdf.subjects(RDF.type, t):
           delete_uri(rdf, inst)
         delete_uri(rdf, t)
       else:
-        replace_object(rdf, t, newval, predicate=RDF.type)
+        replace_object(rdf, t, newuris, predicate=RDF.type)
     else:
       logging.info("Don't know what to do with type %s", t)
       
@@ -370,8 +385,9 @@ def transform_literals(rdf, literalmap):
   for p in props:
     if mapping_match(p, literalmap):
       newval = mapping_get(p, literalmap)
-      logging.debug("transform literal %s -> %s", p, newval)
-      replace_predicate(rdf, p, newval, subjecttypes=affected_types)
+      newuris = [v[0] for v in newval]
+      logging.debug("transform literal %s -> %s", p, str(newuris))
+      replace_predicate(rdf, p, newuris, subjecttypes=affected_types)
     else:
       logging.info("Don't know what to do with literal %s", p)
       
@@ -391,8 +407,9 @@ def transform_relations(rdf, relationmap):
   for p in props:
     if mapping_match(p, relationmap):
       newval = mapping_get(p, relationmap)
-      logging.debug("transform relation %s -> %s",p, newval)
-      replace_predicate(rdf, p, newval, subjecttypes=affected_types)
+      newuris = [v[0] for v in newval]
+      logging.debug("transform relation %s -> %s", p, str(newuris))
+      replace_predicate(rdf, p, newuris, subjecttypes=affected_types)
     else:
       logging.info("Don't know what to do with relation %s", p)
 
@@ -493,7 +510,7 @@ def transform_aggregate_concepts(rdf, cs, relationmap, aggregates):
 
   aggregate_concepts = []
 
-  relation = relationmap.get(OWL.equivalentClass, OWL.equivalentClass)
+  relation = relationmap.get(OWL.equivalentClass, [(OWL.equivalentClass,False)])[0][0]
   for conc, eq in rdf.subject_objects(relation):
     eql = rdf.value(eq, OWL.unionOf, None)
     if eql is None:
@@ -1041,6 +1058,22 @@ def expand_curielike(namespaces, curie):
     logging.warning("Unknown namespace prefix %s", ns)
     return URIRef(curie)
 
+def expand_mapping_target(namespaces, val):
+  """Expand a mapping target, expressed as a comma-separated list of
+  CURIE-like strings potentially prefixed with ^ to express inverse
+  properties, into a list of (uri, inverse) tuples, where uri is a URIRef
+  and inverse is a boolean."""
+  
+  vals = [v.strip() for v in val.split(',')]
+  ret = []
+  for v in vals:
+    inverse = False
+    if v.startswith('^'):
+      inverse = True
+      v = v[1:]
+    ret.append((expand_curielike(namespaces, v), inverse))
+  return ret
+
 def main():
   """Read command line parameters and make a transform based on them"""
 
@@ -1064,15 +1097,15 @@ def main():
     
     # parse types from configuration file
     for key, val in cfgparser.items('types'):
-      typemap[expand_curielike(namespaces, key)] = expand_curielike(namespaces, val)
+      typemap[expand_curielike(namespaces, key)] = expand_mapping_target(namespaces, val)
 
     # parse literals from configuration file
     for key, val in cfgparser.items('literals'):
-      literalmap[expand_curielike(namespaces, key)] = expand_curielike(namespaces, val)
+      literalmap[expand_curielike(namespaces, key)] = expand_mapping_target(namespaces, val)
 
     # parse relations from configuration file
     for key, val in cfgparser.items('relations'):
-      relationmap[expand_curielike(namespaces, key)] = expand_curielike(namespaces, val)
+      relationmap[expand_curielike(namespaces, key)] = expand_mapping_target(namespaces, val)
 
     # parse options from configuration file
     for opt, val in cfgparser.items('options'):
