@@ -131,9 +131,11 @@ def replace_subject(rdf, fromuri, touri):
 def replace_predicate(rdf, fromuri, touri, subjecttypes=None, inverse=False):
   """Replace all occurrences of fromuri as predicate with touri in the given
      model. If touri=None, will delete all occurrences of fromuri instead.
-     If touri is a list or tuple of URIRef, all values will be inserted.
-     If a subjecttypes sequence is given, modify only those triples where
-     the subject is one of the provided types."""
+     If touri is a list or tuple of URIRef, all values will be inserted. If
+     touri is a list of (URIRef, boolean) tuples, the boolean value will be
+     used to determine whether an inverse property is created (if True) or
+     not (if False). If a subjecttypes sequence is given, modify only those
+     triples where the subject is one of the provided types."""
 
   if fromuri == touri: return
   for s, o in rdf.subject_objects(fromuri):
@@ -145,8 +147,13 @@ def replace_predicate(rdf, fromuri, touri, subjecttypes=None, inverse=False):
     rdf.remove((s, fromuri, o))
     if touri is not None:
       if not isinstance(touri, (list, tuple)): touri = [touri]
-      for uri in touri:
-        rdf.add((s, uri, o))
+      for val in touri:
+        if not isinstance(val, tuple): val = (val, False)
+        uri, inverse = val
+        if inverse:
+          rdf.add((o, uri, s))
+        else:
+          rdf.add((s, uri, o))
 
 def replace_object(rdf, fromuri, touri, predicate=None):
   """Replace all occurrences of fromuri as object with touri in the given
@@ -407,9 +414,8 @@ def transform_relations(rdf, relationmap):
   for p in props:
     if mapping_match(p, relationmap):
       newval = mapping_get(p, relationmap)
-      newuris = [v[0] for v in newval]
-      logging.debug("transform relation %s -> %s", p, str(newuris))
-      replace_predicate(rdf, p, newuris, subjecttypes=affected_types)
+      logging.debug("transform relation %s -> %s", p, str(newval))
+      replace_predicate(rdf, p, newval, subjecttypes=affected_types)
     else:
       logging.info("Don't know what to do with relation %s", p)
 
