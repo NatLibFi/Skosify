@@ -28,9 +28,6 @@ except ImportError:
   RDFNS = RDF.uri
   RDFSNS = RDFS.uri
 
-# use custom memory-saving context-aware Store implementation
-from setstore import IOMemory
-
 # namespace defs
 SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
 SKOSEXT = Namespace("http://purl.org/finnonto/schema/skosext#")
@@ -171,9 +168,7 @@ def find_prop_overlap(rdf, prop1, prop2):
 
 def read_input(filenames, fmt):
   """Read the given RDF file(s) and return an rdflib Graph object."""
-  store = IOMemory()
-  rdf = Graph(store)
-#  rdf = Graph()
+  rdf = Graph()
 
   for filename in filenames:
     if filename == '-':
