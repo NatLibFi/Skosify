@@ -53,6 +53,7 @@ DEFAULT_OPTIONS = {
   'log': None,
   'from_format': None,
   'to_format': None,
+  'mark_top_concepts': True,
   'narrower': True,
   'transitive': False,
   'enrich_mappings': True,
@@ -648,7 +649,7 @@ def enrich_relations(rdf, enrich_mappings, use_narrower, use_transitive):
   for s,o in rdf.subject_objects(SKOS.topConceptOf):
     rdf.add((s, SKOS.inScheme, o))
 
-def setup_top_concepts(rdf):
+def setup_top_concepts(rdf, mark_top_concepts):
   """Determine the top concepts of each concept scheme and mark them using hasTopConcept/topConceptOf."""
 
   for cs in rdf.subjects(RDF.type, SKOS.ConceptScheme):
@@ -660,9 +661,12 @@ def setup_top_concepts(rdf):
       if broader is None: # yes it is a top concept!
         if (cs, SKOS.hasTopConcept, conc) not in rdf and \
            (conc, SKOS.topConceptOf, cs) not in rdf:
+          if mark_top_concepts:
             logging.info("Marking loose concept %s as top concept of scheme %s", conc, cs)
-        rdf.add((cs, SKOS.hasTopConcept, conc))
-        rdf.add((conc, SKOS.topConceptOf, cs))
+            rdf.add((cs, SKOS.hasTopConcept, conc))
+            rdf.add((conc, SKOS.topConceptOf, cs))
+          else:
+            logging.debug("Not marking loose concept %s as top concept of scheme %s, as mark_top_concepts is disabled", conc, cs)
 
 def setup_concept_scheme(rdf, defaultcs):
   """Make sure all concepts have an inScheme property, using the given default concept scheme if necessary."""
@@ -842,7 +846,7 @@ def check_hierarchy_visit(rdf, node, parent, break_cycles, status):
   elif status.get(node) == 2: # is completed already
     pass
 
-def check_hierarchy(rdf, break_cycles, keep_related):
+def check_hierarchy(rdf, break_cycles, keep_related, mark_top_concepts):
   # check for cycles in the skos:broader hierarchy
   # using a recursive depth first search algorithm
   starttime = time.time()
@@ -860,7 +864,7 @@ def check_hierarchy(rdf, break_cycles, keep_related):
       check_hierarchy_visit(rdf, conc, None, break_cycles, status=status)
   if recheck_top_concepts:
     logging.info("Some concepts not reached in initial cycle detection. Re-checking for loose concepts.")
-    setup_top_concepts(rdf)
+    setup_top_concepts(rdf, mark_top_concepts)
 
   # check overlap between disjoint semantic relations
   # related and broaderTransitive
@@ -961,11 +965,11 @@ def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
   logging.debug("Phase 7: Setting up concept schemes and top concepts")
   # setup inScheme and hasTopConcept
   setup_concept_scheme(voc, cs)
-  setup_top_concepts(voc)
+  setup_top_concepts(voc, options.mark_top_concepts)
 
   logging.debug("Phase 8: Checking concept hierarchy")
   # check hierarchy for cycles
-  check_hierarchy(voc, options.break_cycles, options.keep_related)
+  check_hierarchy(voc, options.break_cycles, options.keep_related, options.mark_top_concepts)
   
   logging.debug("Phase 9: Checking labels")
   # check for duplicate labels
@@ -1014,6 +1018,8 @@ def get_option_parser(defaults):
   group = optparse.OptionGroup(parser, "Vocabulary Structure Options")
   group.add_option('-I', '--infer', action="store_true", help='Perform RDFS subclass/subproperty inference before transforming input.')
   group.add_option('-i', '--no-infer', dest="infer", action="store_false", help="Don't perform RDFS subclass/subproperty inference before transforming input.")
+  group.add_option('-E', '--mark-top-concepts', action="store_true", help='Mark top-level concepts in the hierarchy as top concepts (entry points).')
+  group.add_option('-e', '--no-mark-top-concepts', dest="mark_top_concepts", action="store_false", help="Don't mark top-level concepts in the hierarchy as top concepts.")
   group.add_option('-N', '--narrower', action="store_true", help='Include narrower/narrowerGeneric/narrowerPartitive relationships in the output vocabulary.')
   group.add_option('-n', '--no-narrower', dest="narrower", action="store_false", help="Don't include narrower/narrowerGeneric/narrowerPartitive relationships in the output vocabulary.")
   group.add_option('-T', '--transitive', action="store_true", help='Include transitive hierarchy relationships in the output vocabulary.')
