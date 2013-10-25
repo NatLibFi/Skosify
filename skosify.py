@@ -6,15 +6,23 @@
 # MIT License
 # see README.txt for more information
 
+# python2 compatibility
+from __future__ import print_function
+
 import sys
 import time
 import logging
 
 try:
+  import configparser
+except ImportError:
+  import ConfigParser as configparser
+
+try:
   from rdflib import URIRef, BNode, Literal, Namespace, RDF, RDFS
 except ImportError:
-  print >>sys.stderr, "You need to install the rdflib Python library (http://rdflib.net)."
-  print >>sys.stderr, "On Debian/Ubuntu, try: sudo apt-get install python-rdflib"
+  print("You need to install the rdflib Python library (http://rdflib.net).", file=sys.stderr)
+  print("On Debian/Ubuntu, try: sudo apt-get install python-rdflib", file=sys.stderr)
   sys.exit(1)
 
 try:
@@ -80,21 +88,21 @@ def mapping_get(uri, mapping):
   """Look up the URI in the given mapping and return the result. Throws KeyError if no matching mapping was found."""
   ln = localname(uri)
   # 1. try to match URI keys
-  for k, v in mapping.iteritems():
+  for k, v in mapping.items():
     if k == uri:
       return v
   # 2. try to match local names
-  for k, v in mapping.iteritems():
+  for k, v in mapping.items():
     if k == ln:
       return v
   # 3. try to match local names with * prefix
   # try to match longest first, so sort the mapping by key length
-  l = mapping.items()
+  l = list(mapping.items())
   l.sort(key=lambda i: len(i[0]), reverse=True)
   for k,v in l:
     if k[0] == '*' and ln.endswith(k[1:]):
       return v
-  raise KeyError, uri
+  raise KeyError(uri)
 
 def mapping_match(uri, mapping):
   """Determine whether the given URI matches one of the given mappings. Returns True if a match was found, False otherwise."""
@@ -328,7 +336,7 @@ def infer_classes(rdf):
         upperclasses[s].add(uc)
 
   # set the superclass type information for subclass instances
-  for s,ucs in upperclasses.iteritems():
+  for s,ucs in upperclasses.items():
     logging.debug("setting superclass types: %s -> %s", s, str(ucs))
     for res in rdf.subjects(RDF.type, s):
       for uc in ucs:
@@ -348,7 +356,7 @@ def infer_properties(rdf):
         superprops[s].add(sp)
   
   # add the superproperty relationships
-  for p,sps in superprops.iteritems():
+  for p,sps in superprops.items():
     logging.debug("setting superproperties: %s -> %s", p, str(sps))
     for s,o in rdf.subject_objects(p):
       for sp in sps:
@@ -439,7 +447,7 @@ def transform_labels(rdf, defaultlanguage):
       # set default language
       if defaultlanguage and label.language is None:
         logging.warning("Setting default language of '%s' to %s", label, defaultlanguage)
-        newlabel = Literal(unicode(label), defaultlanguage)
+        newlabel = Literal(label, defaultlanguage)
         rdf.remove((conc, labelProp, label))
         rdf.add((conc, labelProp, newlabel))
         
@@ -889,7 +897,7 @@ def write_output(rdf, filename, fmt):
   if filename == '-':
     out = sys.stdout
   else:
-    out = open(filename, 'w')
+    out = open(filename, 'wb')
   
   if not fmt:
     # determine output format
@@ -1052,7 +1060,8 @@ def expand_curielike(namespaces, curie):
   unchanged."""
 
   if curie == '': return None
-  curie = curie.decode('UTF-8')
+  if sys.version < '3': # Python 2 ConfigParser reads raw byte strings
+    curie = curie.decode('UTF-8') # ...make those into Unicode objects
 
   if curie.startswith('[') and curie.endswith(']'):
     # decode SafeCURIE
@@ -1099,8 +1108,7 @@ def main():
 
   if options.config is not None:
     # read the supplied configuration file
-    import ConfigParser
-    cfgparser = ConfigParser.SafeConfigParser()
+    cfgparser = configparser.SafeConfigParser()
     cfgparser.optionxform = str # force case-sensitive handling of option names
     cfgparser.read(options.config)
 
