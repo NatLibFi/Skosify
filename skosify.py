@@ -149,6 +149,7 @@ def replace_predicate(rdf, fromuri, touri, subjecttypes=None, inverse=False):
     if touri is not None:
       if not isinstance(touri, (list, tuple)): touri = [touri]
       for val in touri:
+        if val is None: continue
         if not isinstance(val, tuple): val = (val, False)
         uri, inverse = val
         if inverse:
