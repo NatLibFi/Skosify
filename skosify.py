@@ -482,7 +482,7 @@ def transform_labels(rdf, defaultlanguage):
       rdf.add((conc, SKOS.altLabel, label))
 
 def transform_collections(rdf):
-  for coll in rdf.subjects(RDF.type, SKOS.Collection):
+  for coll in sorted(rdf.subjects(RDF.type, SKOS.Collection)):
     for prop in (SKOS.broader, SKOSEXT.broaderGeneric):
       broaders = set(rdf.objects(coll, prop))
       narrowers = set(rdf.subjects(prop, coll))
@@ -506,11 +506,11 @@ def transform_collections(rdf):
                     SKOS.closeMatch, SKOS.exactMatch,
                     SKOS.broadMatch, SKOS.narrowMatch, SKOS.relatedMatch,
                     SKOS.topConceptOf, SKOS.hasTopConcept):
-      for o in rdf.objects(coll, relProp):
+      for o in sorted(rdf.objects(coll, relProp)):
         logging.warning("Removing concept relation %s -> %s from collection %s",
              localname(relProp), o, coll)
         rdf.remove((coll, relProp, o))
-      for s in rdf.subjects(relProp, coll):
+      for s in sorted(rdf.subjects(relProp, coll)):
         logging.warning("Removing concept relation %s <- %s from collection %s",
              localname(relProp), s, coll)
         rdf.remove((s, relProp, coll))
@@ -661,8 +661,8 @@ def enrich_relations(rdf, enrich_mappings, use_narrower, use_transitive):
 def setup_top_concepts(rdf, mark_top_concepts):
   """Determine the top concepts of each concept scheme and mark them using hasTopConcept/topConceptOf."""
 
-  for cs in rdf.subjects(RDF.type, SKOS.ConceptScheme):
-    for conc in rdf.subjects(SKOS.inScheme, cs):
+  for cs in sorted(rdf.subjects(RDF.type, SKOS.ConceptScheme)):
+    for conc in sorted(rdf.subjects(SKOS.inScheme, cs)):
       if (conc, RDF.type, SKOS.Concept) not in rdf:
         continue # not a Concept, so can't be a top concept
       # check whether it's a top concept
@@ -860,14 +860,14 @@ def check_hierarchy(rdf, break_cycles, keep_related, mark_top_concepts):
   # using a recursive depth first search algorithm
   starttime = time.time()
 
-  top_concepts = rdf.subject_objects(SKOS.hasTopConcept)
+  top_concepts = sorted(rdf.subject_objects(SKOS.hasTopConcept))
   status = {}
   for cs,root in top_concepts:
     check_hierarchy_visit(rdf, root, None, break_cycles, status=status)
   # double check that all concepts were actually visited in the search,
   # and visit remaining ones if necessary
   recheck_top_concepts=False
-  for conc in rdf.subjects(RDF.type, SKOS.Concept):
+  for conc in sorted(rdf.subjects(RDF.type, SKOS.Concept)):
     if conc not in status:
       recheck_top_concepts=True
       check_hierarchy_visit(rdf, conc, None, break_cycles, status=status)
@@ -877,8 +877,8 @@ def check_hierarchy(rdf, break_cycles, keep_related, mark_top_concepts):
 
   # check overlap between disjoint semantic relations
   # related and broaderTransitive
-  for conc1,conc2 in rdf.subject_objects(SKOS.related):
-    if conc2 in rdf.transitive_objects(conc1, SKOS.broader):
+  for conc1,conc2 in sorted(rdf.subject_objects(SKOS.related)):
+    if conc2 in sorted(rdf.transitive_objects(conc1, SKOS.broader)):
       if keep_related:
         logging.warning("Concepts %s and %s connected by both skos:broaderTransitive and skos:related, but keeping it because keep_related is enabled", \
              conc1, conc2)
