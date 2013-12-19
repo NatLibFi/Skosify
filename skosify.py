@@ -806,9 +806,9 @@ def check_labels(rdf, preflabel_policy):
           continue
         
         if preflabel_policy == 'shortest':
-          chosen = sorted(labels, key=len)[0]
+          chosen = sorted(sorted(labels), key=len)[0]
         elif preflabel_policy == 'longest':
-          chosen = sorted(labels, key=len)[-1]
+          chosen = sorted(sorted(labels), key=len)[-1]
         else:
           logging.critical("Unknown preflabel-policy: %s", preflabel_policy)
           sys.exit(1)
