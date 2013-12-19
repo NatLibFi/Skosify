@@ -193,7 +193,7 @@ def delete_uri(rdf, uri):
 
 def find_prop_overlap(rdf, prop1, prop2):
   """Generate pairs of (subject,object) tuples which are connected by both prop1 and prop2."""
-  for s,o in rdf.subject_objects(prop1):
+  for s,o in sorted(rdf.subject_objects(prop1)):
     if (s,prop2,o) in rdf:
       yield (s,o)
 
@@ -434,7 +434,7 @@ def transform_labels(rdf, defaultlanguage):
   for labelProp in (SKOS.prefLabel, SKOS.altLabel, SKOS.hiddenLabel, SKOSEXT.candidateLabel,
                     SKOS.note, SKOS.scopeNote, SKOS.definition, SKOS.example,
                     SKOS.historyNote, SKOS.editorialNote, SKOS.changeNote, RDFS.label):
-    for conc, label in rdf.subject_objects(labelProp):
+    for conc, label in sorted(rdf.subject_objects(labelProp)):
       if not isinstance(label, Literal):
         continue
       # strip extra whitespace, if found
@@ -791,7 +791,7 @@ def cleanup_unreachable(rdf):
 def check_labels(rdf, preflabel_policy):
   # check that resources have only one prefLabel per language
   resources = set((res for res,label in rdf.subject_objects(SKOS.prefLabel)))
-  for res in resources:
+  for res in sorted(resources):
     prefLabels = {}
     for label in rdf.objects(res, SKOS.prefLabel):
       lang = label.language
