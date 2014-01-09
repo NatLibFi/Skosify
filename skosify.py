@@ -197,7 +197,7 @@ def find_prop_overlap(rdf, prop1, prop2):
     if (s,prop2,o) in rdf:
       yield (s,o)
 
-def read_input(filenames, fmt):
+def read_input(filenames, infmt):
   """Read the given RDF file(s) and return an rdflib Graph object."""
   rdf = Graph()
 
@@ -207,7 +207,9 @@ def read_input(filenames, fmt):
     else:
       f = open(filename, 'r')
     
-    if not fmt:
+    if infmt:
+      fmt = infmt
+    else:
       # determine format based on file extension
       fmt = 'xml' # default
       if filename.endswith('n3'): fmt = 'n3'
