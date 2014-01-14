@@ -126,7 +126,9 @@ def mapping_match(uri, mapping):
 
 
 def in_general_ns(uri):
-    """Return True iff the URI is in a well-known general RDF namespace (RDF, RDFS, OWL, SKOS, DC)"""
+    """Return True iff the URI is in a well-known general RDF namespace.
+
+    URI namespaces considered well-known are RDF, RDFS, OWL, SKOS and DC."""
     try:  # rdflib 3.0.0
         RDFuri = RDF.uri
         RDFSuri = RDFS.uri
@@ -141,8 +143,7 @@ def in_general_ns(uri):
 
 
 def replace_subject(rdf, fromuri, touri):
-    """Replace all occurrences of fromuri as subject with touri in the given
-    model.
+    """Replace occurrences of fromuri as subject with touri in given model.
 
     If touri=None, will delete all occurrences of fromuri instead.
     If touri is a list or tuple of URIRefs, all values will be inserted.
@@ -160,8 +161,7 @@ def replace_subject(rdf, fromuri, touri):
 
 
 def replace_predicate(rdf, fromuri, touri, subjecttypes=None, inverse=False):
-    """Replace all occurrences of fromuri as predicate with touri in the given
-    model.
+    """Replace occurrences of fromuri as predicate with touri in given model.
 
     If touri=None, will delete all occurrences of fromuri instead.
     If touri is a list or tuple of URIRef, all values will be inserted. If
@@ -238,7 +238,7 @@ def delete_uri(rdf, uri):
 
 
 def find_prop_overlap(rdf, prop1, prop2):
-    """Generate pairs of (subject,object) tuples which are connected by both prop1 and prop2."""
+    """Generate (subject,object) pairs connected by both prop1 and prop2."""
     for s, o in sorted(rdf.subject_objects(prop1)):
         if (s, prop2, o) in rdf:
             yield (s, o)
@@ -283,7 +283,10 @@ def setup_namespaces(rdf, namespaces):
 
 
 def get_concept_scheme(rdf, label=None, language=None):
-    """Return a skos:ConceptScheme contained in the model, or None if not present. Optionally add a label if the concept scheme doesn't have a label."""
+    """Return a skos:ConceptScheme contained in the model.
+
+    Returns None if no skos:ConceptScheme is present.
+    Optionally add a label if the concept scheme doesn't have a label."""
     # add explicit type
     for s, o in rdf.subject_objects(SKOS.inScheme):
         if not isinstance(o, Literal):
@@ -296,7 +299,8 @@ def get_concept_scheme(rdf, label=None, language=None):
         css.sort()
         cs = css[0]
         logging.warning(
-            "Multiple concept schemes found. Selecting %s as default concept scheme.", cs)
+            "Multiple concept schemes found. "
+            "Selecting %s as default concept scheme.", cs)
     elif len(css) == 1:
         cs = css[0]
     else:
@@ -308,7 +312,8 @@ def get_concept_scheme(rdf, label=None, language=None):
     if len(labels) == 0:
         if not label:
             logging.warning(
-                "Unlabeled concept scheme detected. Use --label option to set the concept scheme label.")
+                "Unlabeled concept scheme detected. "
+                "Use --label option to set the concept scheme label.")
         else:
             logging.info(
                 "Unlabeled concept scheme detected. Setting label to '%s'" %
@@ -329,18 +334,21 @@ def detect_namespace(rdf):
     conc = rdf.value(None, RDF.type, SKOS.Concept, any=True)
     if conc is None:
         logging.critical(
-            "Namespace auto-detection failed. Set namespace using the --namespace option.")
+            "Namespace auto-detection failed. "
+            "Set namespace using the --namespace option.")
         sys.exit(1)
 
     ln = localname(conc)
     ns = URIRef(conc.replace(ln, ''))
     if ns.strip() == '':
         logging.critical(
-            "Namespace auto-detection failed. Set namespace using the --namespace option.")
+            "Namespace auto-detection failed. "
+            "Set namespace using the --namespace option.")
         sys.exit(1)
 
     logging.info(
-        "Namespace auto-detected to '%s' - you can override this with the --namespace option.", ns)
+        "Namespace auto-detected to '%s' "
+        "- you can override this with the --namespace option.", ns)
     return ns
 
 
@@ -356,7 +364,8 @@ def create_concept_scheme(
             onts.sort()
             ont = onts[0]
             logging.warning(
-                "Multiple owl:Ontology instances found. Creating concept scheme from %s.", ont)
+                "Multiple owl:Ontology instances found. "
+                "Creating concept scheme from %s.", ont)
         elif len(onts) == 1:
             ont = onts[0]
         else:
@@ -364,7 +373,8 @@ def create_concept_scheme(
 
         if not ont:
             logging.info(
-                "No skos:ConceptScheme or owl:Ontology found. Using namespace auto-detection for creating concept scheme.")
+                "No skos:ConceptScheme or owl:Ontology found. "
+                "Using namespace auto-detection for creating concept scheme.")
             ns = detect_namespace(rdf)
         elif ont.endswith('/') or ont.endswith('#'):
             ns = ont
@@ -379,7 +389,8 @@ def create_concept_scheme(
         rdf.add((cs, RDFS.label, Literal(label, language)))
     else:
         logging.warning(
-            "Unlabeled concept scheme created. Use --label option to set the concept scheme label.")
+            "Unlabeled concept scheme created. "
+            "Use --label option to set the concept scheme label.")
 
     if ont is not None:
         rdf.remove((ont, RDF.type, OWL.Ontology))
@@ -388,7 +399,8 @@ def create_concept_scheme(
             rdf.remove((ont, OWL.imports, o))
         # remove protege specific properties
         for p, o in rdf.predicate_objects(ont):
-            if p.startswith(URIRef('http://protege.stanford.edu/plugins/owl/protege#')):
+            prot = URIRef('http://protege.stanford.edu/plugins/owl/protege#')
+            if p.startswith(prot):
                 rdf.remove((ont, p, o))
         # move remaining properties (dc:title etc.) of the owl:Ontology into
         # the skos:ConceptScheme
@@ -398,7 +410,9 @@ def create_concept_scheme(
 
 
 def infer_classes(rdf):
-    """Do RDFS subclass inference: mark all resources with a subclass type with the upper class."""
+    """Perform RDFS subclass inference.
+
+    Mark all resources with a subclass type with the upper class."""
 
     logging.debug("doing RDFS subclass inference")
     # find out the subclass mappings
@@ -418,7 +432,9 @@ def infer_classes(rdf):
 
 
 def infer_properties(rdf):
-    """Do RDFS subproperty inference: add superproperties where subproperties have been used."""
+    """Perform RDFS subproperty inference.
+
+    Add superproperties where subproperties have been used."""
 
     logging.debug("doing RDFS subproperty inference")
     # find out the subproperty mappings
@@ -438,7 +454,7 @@ def infer_properties(rdf):
 
 
 def transform_concepts(rdf, typemap):
-    """Transform YSO-style Concepts into skos:Concepts, GroupConcepts into skos:Collections and AggregateConcepts into ...what?"""
+    """Transform Concepts into new types, as defined by the config file."""
 
     # find out all the types used in the model
     types = set()
@@ -463,7 +479,7 @@ def transform_concepts(rdf, typemap):
 
 
 def transform_literals(rdf, literalmap):
-    """Transform YSO-style labels and other literal properties of Concepts into SKOS equivalents."""
+    """Transform literal properties of Concepts, as defined by config file."""
 
     affected_types = (SKOS.Concept, SKOS.Collection, SKOSEXT.DeprecatedConcept)
 
@@ -471,7 +487,8 @@ def transform_literals(rdf, literalmap):
     for t in affected_types:
         for conc in rdf.subjects(RDF.type, t):
             for p, o in rdf.predicate_objects(conc):
-                if isinstance(o, Literal) and (p in literalmap or not in_general_ns(p)):
+                if isinstance(o, Literal) \
+                   and (p in literalmap or not in_general_ns(p)):
                     props.add(p)
 
     for p in props:
@@ -493,7 +510,8 @@ def transform_relations(rdf, relationmap):
     for t in affected_types:
         for conc in rdf.subjects(RDF.type, t):
             for p, o in rdf.predicate_objects(conc):
-                if isinstance(o, (URIRef, BNode)) and (p in relationmap or not in_general_ns(p)):
+                if isinstance(o, (URIRef, BNode)) \
+                   and (p in relationmap or not in_general_ns(p)):
                     props.add(p)
 
     for p in props:
@@ -508,9 +526,10 @@ def transform_relations(rdf, relationmap):
 def transform_labels(rdf, defaultlanguage):
     # fix labels and documentary notes with extra whitespace
     for labelProp in (
-            SKOS.prefLabel, SKOS.altLabel, SKOS.hiddenLabel, SKOSEXT.candidateLabel,
-            SKOS.note, SKOS.scopeNote, SKOS.definition, SKOS.example,
-            SKOS.historyNote, SKOS.editorialNote, SKOS.changeNote, RDFS.label):
+            SKOS.prefLabel, SKOS.altLabel, SKOS.hiddenLabel,
+            SKOSEXT.candidateLabel, SKOS.note, SKOS.scopeNote,
+            SKOS.definition, SKOS.example, SKOS.historyNote,
+            SKOS.editorialNote, SKOS.changeNote, RDFS.label):
         for conc, label in sorted(rdf.subject_objects(labelProp)):
             if not isinstance(label, Literal):
                 continue
@@ -525,7 +544,8 @@ def transform_labels(rdf, defaultlanguage):
             # set default language
             if defaultlanguage and label.language is None:
                 logging.warning(
-                    "Setting default language of '%s' to %s", label, defaultlanguage)
+                    "Setting default language of '%s' to %s",
+                    label, defaultlanguage)
                 newlabel = Literal(label, defaultlanguage)
                 rdf.remove((conc, labelProp, label))
                 rdf.add((conc, labelProp, newlabel))
@@ -538,7 +558,8 @@ def transform_labels(rdf, defaultlanguage):
     for conc, lang in conc_lang:
         # check whether there are already prefLabels for this concept in this
         # language
-        if lang not in [pl.language for pl in rdf.objects(conc, SKOS.prefLabel)]:
+        if lang not in [pl.language
+                        for pl in rdf.objects(conc, SKOS.prefLabel)]:
             # no -> let's transform the candidate labels into prefLabels
             to_prop = SKOS.prefLabel
         else:
@@ -554,7 +575,8 @@ def transform_labels(rdf, defaultlanguage):
 
     for conc, label in rdf.subject_objects(SKOSEXT.candidateLabel):
         rdf.remove((conc, SKOSEXT.candidateLabel, label))
-        if label.language not in [pl.language for pl in rdf.objects(conc, SKOS.prefLabel)]:
+        if label.language not in [pl.language
+                                  for pl in rdf.objects(conc, SKOS.prefLabel)]:
             # no prefLabel found, make this candidateLabel a prefLabel
             rdf.add((conc, SKOS.prefLabel, label))
         else:
@@ -579,7 +601,8 @@ def transform_collections(rdf):
                 for b in broaders:
                     rdf.add((n, prop, b))
 
-        # avoid using SKOS semantic relations as they're only meant for concepts
+        # avoid using SKOS semantic relations as they're only meant
+        # to be used for concepts (i.e. have rdfs:domain skos:Concept)
         # FIXME should maybe use some substitute for exactMatch for
         # collections?
         for relProp in (SKOS.semanticRelation,
@@ -767,12 +790,15 @@ def setup_top_concepts(rdf, mark_top_concepts):
                    (conc, SKOS.topConceptOf, cs) not in rdf:
                     if mark_top_concepts:
                         logging.info(
-                            "Marking loose concept %s as top concept of scheme %s", conc, cs)
+                            "Marking loose concept %s "
+                            "as top concept of scheme %s", conc, cs)
                         rdf.add((cs, SKOS.hasTopConcept, conc))
                         rdf.add((conc, SKOS.topConceptOf, cs))
                     else:
                         logging.debug(
-                            "Not marking loose concept %s as top concept of scheme %s, as mark_top_concepts is disabled", conc, cs)
+                            "Not marking loose concept %s as top concept "
+                            "of scheme %s, as mark_top_concepts is disabled",
+                            conc, cs)
 
 
 def setup_concept_scheme(rdf, defaultcs):
@@ -810,7 +836,8 @@ def cleanup_classes(rdf):
 
             # if the class is also a skos:Concept or skos:Collection, only
             # remove its rdf:type
-            if (cl, RDF.type, SKOS.Concept) in rdf or (cl, RDF.type, SKOS.Collection) in rdf:
+            if (cl, RDF.type, SKOS.Concept) in rdf \
+               or (cl, RDF.type, SKOS.Collection) in rdf:
                 logging.debug("removing classiness of %s", cl)
                 rdf.remove((cl, RDF.type, t))
             else:  # remove it completely
@@ -819,7 +846,10 @@ def cleanup_classes(rdf):
 
 
 def cleanup_properties(rdf):
-    """Remove unnecessary property definitions: SKOS and DC property definitions and definitions of unused properties."""
+    """Remove unnecessary property definitions.
+
+    Reemoves SKOS and DC property definitions and definitions of unused
+    properties."""
     for t in (RDF.Property, OWL.DatatypeProperty, OWL.ObjectProperty):
         for prop in rdf.subjects(RDF.type, t):
             if prop.startswith(SKOS):
@@ -919,7 +949,8 @@ def check_labels(rdf, preflabel_policy):
             if len(labels) > 1:
                 if preflabel_policy == 'all':
                     logging.warning(
-                        "Resource %s has more than one prefLabel@%s, but keeping all of them due to preflabel-policy=all.",
+                        "Resource %s has more than one prefLabel@%s, "
+                        "but keeping all of them due to preflabel-policy=all.",
                         res, lang)
                     continue
 
@@ -933,7 +964,8 @@ def check_labels(rdf, preflabel_policy):
                     sys.exit(1)
 
                 logging.warning(
-                    "Resource %s has more than one prefLabel@%s: choosing %s (policy: %s)",
+                    "Resource %s has more than one prefLabel@%s: "
+                    "choosing %s (policy: %s)",
                     res, lang, chosen, preflabel_policy)
                 for label in labels:
                     if label != chosen:
@@ -943,17 +975,20 @@ def check_labels(rdf, preflabel_policy):
     # check overlap between disjoint label properties
     for res, label in find_prop_overlap(rdf, SKOS.prefLabel, SKOS.altLabel):
         logging.warning(
-            "Resource %s has '%s'@%s as both prefLabel and altLabel; removing altLabel",
+            "Resource %s has '%s'@%s as both prefLabel and altLabel; "
+            "removing altLabel",
             res, label, label.language)
         rdf.remove((res, SKOS.altLabel, label))
     for res, label in find_prop_overlap(rdf, SKOS.prefLabel, SKOS.hiddenLabel):
         logging.warning(
-            "Resource %s has '%s'@%s as both prefLabel and hiddenLabel; removing hiddenLabel",
+            "Resource %s has '%s'@%s as both prefLabel and hiddenLabel; "
+            "removing hiddenLabel",
             res, label, label.language)
         rdf.remove((res, SKOS.hiddenLabel, label))
     for res, label in find_prop_overlap(rdf, SKOS.altLabel, SKOS.hiddenLabel):
         logging.warning(
-            "Resource %s has '%s'@%s as both altLabel and hiddenLabel; removing hiddenLabel",
+            "Resource %s has '%s'@%s as both altLabel and hiddenLabel; "
+            "removing hiddenLabel",
             res, label, label.language)
         rdf.remove((res, SKOS.hiddenLabel, label))
 
@@ -976,7 +1011,8 @@ def check_hierarchy_visit(rdf, node, parent, break_cycles, status):
             rdf.remove((parent, SKOS.narrowerTransitive, node))
         else:
             logging.info(
-                "Hierarchy cycle detected at %s -> %s, but not removed because break_cycles is not active",
+                "Hierarchy cycle detected at %s -> %s, "
+                "but not removed because break_cycles is not active",
                 localname(parent), localname(node))
     elif status.get(node) == 2:  # is completed already
         pass
@@ -1000,7 +1036,8 @@ def check_hierarchy(rdf, break_cycles, keep_related, mark_top_concepts):
             check_hierarchy_visit(rdf, conc, None, break_cycles, status=status)
     if recheck_top_concepts:
         logging.info(
-            "Some concepts not reached in initial cycle detection. Re-checking for loose concepts.")
+            "Some concepts not reached in initial cycle detection. "
+            "Re-checking for loose concepts.")
         setup_top_concepts(rdf, mark_top_concepts)
 
     # check overlap between disjoint semantic relations
@@ -1009,11 +1046,15 @@ def check_hierarchy(rdf, break_cycles, keep_related, mark_top_concepts):
         if conc2 in sorted(rdf.transitive_objects(conc1, SKOS.broader)):
             if keep_related:
                 logging.warning(
-                    "Concepts %s and %s connected by both skos:broaderTransitive and skos:related, but keeping it because keep_related is enabled",
+                    "Concepts %s and %s connected by both "
+                    "skos:broaderTransitive and skos:related, "
+                    "but keeping it because keep_related is enabled",
                     conc1, conc2)
             else:
                 logging.warning(
-                    "Concepts %s and %s connected by both skos:broaderTransitive and skos:related, removing skos:related",
+                    "Concepts %s and %s connected by both "
+                    "skos:broaderTransitive and skos:related, "
+                    "removing skos:related",
                     conc1, conc2)
                 rdf.remove((conc1, SKOS.related, conc2))
                 rdf.remove((conc2, SKOS.related, conc1))
@@ -1153,13 +1194,21 @@ def get_option_parser(defaults):
     parser = optparse.OptionParser(usage=usage)
     parser.set_defaults(**defaults)
     parser.add_option('-c', '--config', type='string',
-                      help='Read default options and transformation definitions from the given configuration file.')
+                      help='Read default options '
+                           'and transformation definitions '
+                           'from the given configuration file.')
     parser.add_option('-o', '--output', type='string',
                       help='Output file name. Default is "-" (stdout).')
     parser.add_option('-f', '--from-format', type='string',
-                      help='Input format. Default is to detect format based on file extension. Possible values: xml, n3, turtle, nt...')
+                      help='Input format. '
+                           'Default is to detect format '
+                           'based on file extension. '
+                           'Possible values: xml, n3, turtle, nt...')
     parser.add_option('-F', '--to-format', type='string',
-                      help='Output format. Default is to detect format based on file extension. Possible values: xml, n3, turtle, nt...')
+                      help='Output format. '
+                           'Default is to detect format '
+                           'based on file extension. '
+                           'Possible values: xml, n3, turtle, nt...')
     parser.add_option('-D', '--debug', action="store_true",
                       help='Show debug output.')
     parser.add_option('-d', '--no-debug', dest="debug",
@@ -1170,68 +1219,94 @@ def get_option_parser(defaults):
     group = optparse.OptionGroup(
         parser, "Concept Scheme and Labelling Options")
     group.add_option('-s', '--namespace', type='string',
-                     help='Namespace of vocabulary (usually optional; used to create a ConceptScheme)')
+                     help='Namespace of vocabulary '
+                          '(usually optional; used to create a ConceptScheme)')
     group.add_option('-L', '--label', type='string',
-                     help='Label/title for the vocabulary (usually optional; used to label a ConceptScheme)')
+                     help='Label/title for the vocabulary '
+                          '(usually optional; used to label a ConceptScheme)')
     group.add_option('-l', '--default-language', type='string',
-                     help='Language tag to set for labels with no defined language.')
+                     help='Language tag to set for labels '
+                          'with no defined language.')
     group.add_option('-p', '--preflabel-policy', type='string',
-                     help='Policy for handling multiple prefLabels with the same language tag. Possible values: shortest, longest, all.')
+                     help='Policy for handling multiple prefLabels '
+                          'with the same language tag. '
+                          'Possible values: shortest, longest, all.')
     parser.add_option_group(group)
 
     group = optparse.OptionGroup(parser, "Vocabulary Structure Options")
     group.add_option('-I', '--infer', action="store_true",
-                     help='Perform RDFS subclass/subproperty inference before transforming input.')
+                     help='Perform RDFS subclass/subproperty inference '
+                          'before transforming input.')
     group.add_option('-i', '--no-infer', dest="infer", action="store_false",
-                     help="Don't perform RDFS subclass/subproperty inference before transforming input.")
+                     help="Don't perform RDFS subclass/subproperty inference "
+                          "before transforming input.")
     group.add_option('-E', '--mark-top-concepts', action="store_true",
-                     help='Mark top-level concepts in the hierarchy as top concepts (entry points).')
-    group.add_option(
-        '-e', '--no-mark-top-concepts', dest="mark_top_concepts", action="store_false",
-        help="Don't mark top-level concepts in the hierarchy as top concepts.")
+                     help='Mark top-level concepts in the hierarchy '
+                          'as top concepts (entry points).')
+    group.add_option('-e', '--no-mark-top-concepts',
+                     dest="mark_top_concepts", action="store_false",
+                     help="Don't mark top-level concepts in the hierarchy "
+                          "as top concepts.")
     group.add_option('-N', '--narrower', action="store_true",
-                     help='Include narrower/narrowerGeneric/narrowerPartitive relationships in the output vocabulary.')
-    group.add_option(
-        '-n', '--no-narrower', dest="narrower", action="store_false",
-        help="Don't include narrower/narrowerGeneric/narrowerPartitive relationships in the output vocabulary.")
+                     help='Include narrower/narrowerGeneric/narrowerPartitive '
+                          'relationships in the output vocabulary.')
+    group.add_option('-n', '--no-narrower',
+                     dest="narrower", action="store_false",
+                     help="Don't include "
+                          "narrower/narrowerGeneric/narrowerPartitive "
+                          "relationships in the output vocabulary.")
     group.add_option('-T', '--transitive', action="store_true",
-                     help='Include transitive hierarchy relationships in the output vocabulary.')
-    group.add_option(
-        '-t', '--no-transitive', dest="transitive", action="store_false",
-        help="Don't include transitive hierarchy relationships in the output vocabulary.")
+                     help='Include transitive hierarchy relationships '
+                          'in the output vocabulary.')
+    group.add_option('-t', '--no-transitive',
+                     dest="transitive", action="store_false",
+                     help="Don't include transitive hierarchy relationships "
+                          "in the output vocabulary.")
     group.add_option('-M', '--enrich-mappings', action="store_true",
                      help='Perform SKOS enrichments on mapping relationships.')
     group.add_option('-m', '--no-enrich-mappings', dest="enrich_mappings",
-                     action="store_false", help="Don't perform SKOS enrichments on mapping relationships.")
+                     action="store_false",
+                     help="Don't perform SKOS enrichments "
+                          "on mapping relationships.")
     group.add_option('-A', '--aggregates', action="store_true",
-                     help='Keep AggregateConcepts completely in the output vocabulary.')
-    group.add_option(
-        '-a', '--no-aggregates', dest="aggregates", action="store_false",
-        help='Remove AggregateConcepts completely from the output vocabulary.')
+                     help='Keep AggregateConcepts completely '
+                          'in the output vocabulary.')
+    group.add_option('-a', '--no-aggregates',
+                     dest="aggregates", action="store_false",
+                     help='Remove AggregateConcepts completely '
+                          'from the output vocabulary.')
     group.add_option('-R', '--keep-related', action="store_true",
-                     help="Keep skos:related relationships within the same hierarchy.")
-    group.add_option(
-        '-r', '--no-keep-related', dest="keep_related", action="store_false",
-        help="Remove skos:related relationships within the same hierarchy.")
+                     help="Keep skos:related relationships "
+                          "within the same hierarchy.")
+    group.add_option('-r', '--no-keep-related',
+                     dest="keep_related", action="store_false",
+                     help="Remove skos:related relationships "
+                          "within the same hierarchy.")
     group.add_option('-B', '--break-cycles', action="store_true",
                      help="Break any cycles in the skos:broader hierarchy.")
     group.add_option('-b', '--no-break-cycles', dest="break_cycles",
-                     action="store_false", help="Don't break cycles in the skos:broader hierarchy.")
+                     action="store_false",
+                     help="Don't break cycles in the skos:broader hierarchy.")
     parser.add_option_group(group)
 
     group = optparse.OptionGroup(parser, "Cleanup Options")
     group.add_option('--cleanup-classes', action="store_true",
                      help="Remove definitions of classes with no instances.")
     group.add_option('--no-cleanup-classes', action="store_false",
-                     help="Don't remove definitions of classes with no instances.")
+                     help="Don't remove definitions "
+                          "of classes with no instances.")
     group.add_option('--cleanup-properties', action="store_true",
-                     help="Remove definitions of properties which have not been used.")
+                     help="Remove definitions of properties "
+                          "which have not been used.")
     group.add_option('--no-cleanup-properties', action="store_false",
-                     help="Don't remove definitions of properties which have not been used.")
+                     help="Don't remove definitions of properties "
+                          "which have not been used.")
     group.add_option('--cleanup-unreachable', action="store_true",
-                     help="Remove triples which can not be reached by a traversal from the main vocabulary graph.")
+                     help="Remove triples which can not be reached "
+                          "by a traversal from the main vocabulary graph.")
     group.add_option('--no-cleanup-unreachable', action="store_false",
-                     help="Don't remove triples which can not be reached by a traversal from the main vocabulary graph.")
+                     help="Don't remove triples which can not be reached "
+                          "by a traversal from the main vocabulary graph.")
     parser.add_option_group(group)
 
     return parser
@@ -1305,18 +1380,18 @@ def main():
 
         # parse types from configuration file
         for key, val in cfgparser.items('types'):
-            typemap[expand_curielike(namespaces, key)] = expand_mapping_target(
-                namespaces, val)
+            typemap[expand_curielike(namespaces, key)] = \
+                expand_mapping_target(namespaces, val)
 
         # parse literals from configuration file
         for key, val in cfgparser.items('literals'):
-            literalmap[expand_curielike(namespaces, key)] = expand_mapping_target(
-                namespaces, val)
+            literalmap[expand_curielike(namespaces, key)] = \
+                expand_mapping_target(namespaces, val)
 
         # parse relations from configuration file
         for key, val in cfgparser.items('relations'):
-            relationmap[expand_curielike(namespaces, key)] = expand_mapping_target(
-                namespaces, val)
+            relationmap[expand_curielike(namespaces, key)] = \
+                expand_mapping_target(namespaces, val)
 
         # parse options from configuration file
         for opt, val in cfgparser.items('options'):

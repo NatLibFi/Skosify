@@ -125,7 +125,8 @@ HEADER = """
 """
 
 FOOTER = """
-<div id="footer">&copy; Semantic Computing Research Group. <a href="http://www.seco.tkk.fi/tools/skosify">About Skosify</a></div>
+<div id="footer">&copy; Semantic Computing Research Group.
+<a href="http://www.seco.tkk.fi/tools/skosify">About Skosify</a></div>
 """
 
 FRONT_PAGE = """<!DOCTYPE html>
@@ -149,11 +150,15 @@ FRONT_PAGE = """<!DOCTYPE html>
 <legend>Validity options</legend>
 <div class="field">
 <input type="checkbox" name="keep-related" value="1" />
-<label for="keep-related">Keep skos:related relationships within the same hierarchy</label>
+<label for="keep-related">
+  Keep skos:related relationships within the same hierarchy
+</label>
 </div>
 <div class="field">
 <input type="checkbox" name="break-cycles" value="1" />
-<label for="keep-related">Break any cycles in the skos:broader hierarchy</label>
+<label for="keep-related">
+  Break any cycles in the skos:broader hierarchy
+</label>
 </div>
 </fieldset>
 
@@ -165,7 +170,9 @@ FRONT_PAGE = """<!DOCTYPE html>
 </div>
 <div class="field">
 <input type="checkbox" name="transitive" value="1" />
-<label for="transitive">Include transitive hierarchical relations in output</label>
+<label for="transitive">
+  Include transitive hierarchical relations in output
+</label>
 </div>
 </fieldset>
 
@@ -213,12 +220,14 @@ function getStatus() {
             var phasestatus = "done";
           }
           html += "<div class='phase " + phasestatus + "'>";
-          html += "<h3>" + phase["name"] + "</h3>" + "<p>" + phase["description"] + "</p>";
+          html += "<h3>" + phase["name"] + "</h3>" \
+                  + "<p>" + phase["description"] + "</p>";
           if (phase["warnings"].length > 0) {
             var warnings = phase["warnings"];
             html += "<h4 class='warnings'>Warnings (" + warnings.length + ")";
             if (phase["warnings"].length > 3) {
-              html += " <a href='#' onclick='return toggleWarnings();'>show / hide full list</a>";
+              html += " <a href='#' onclick='return toggleWarnings();'>" +
+                      "show / hide full list</a>";
             }
             html += "</h4>";
             html += "<ul class='warnings'>";
@@ -232,7 +241,8 @@ function getStatus() {
             var infos = phase["infos"]
             html += "<h4 class='infos'>Messages (" + infos.length + ")";
             if (phase["infos"].length > 3) {
-              html += " <a href='#' onclick='return toggleInfos();'>show / hide full list</a>";
+              html += " <a href='#' onclick='return toggleInfos();'>" +
+                      "show / hide full list</a>";
             }
             html += "</h4>";
             html += "<ul class='infos'>";
@@ -253,8 +263,10 @@ function getStatus() {
         if (data["status"] == "finished") {
           html  = "<h2>Results</h2>";
           html += "<ul>";
-          html += "<li><a href='" + data["output"] + "'>Processed vocabulary</a></li>";
-          html += "<li><a href='" + data["report"] + "'>Full report</a></li>";
+          html += "<li><a href='" + data["output"] + "'>" +
+                  "Processed vocabulary</a></li>";
+          html += "<li><a href='" + data["report"] + "'>" +
+                  "Full report</a></li>";
           html += "</ul>";
           statusDiv.innerHTML += html;
         } else if (data["status"] != "error") {
@@ -450,7 +462,9 @@ def return_status(session):
                     infos = []
                 phasename, phasedesc = line.replace('DEBUG: ', '').split(': ')
                 phases.append(
-                    {'name': phasename, 'description': phasedesc, 'warnings': []})
+                    {'name': phasename,
+                     'description': phasedesc,
+                     'warnings': []})
             elif line.startswith('DEBUG: Writing'):
                 fn = os.path.basename(line.split()[4])
                 output = os.environ['SCRIPT_NAME'] + "/" + session + "/" + fn
