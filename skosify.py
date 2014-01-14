@@ -83,12 +83,16 @@ DEFAULT_OPTIONS = {
 
 
 def localname(uri):
-    """Determine the local name (after namespace) of the given URI"""
+    """Determine the local name (after namespace) of the given URI."""
     return uri.split('/')[-1].split('#')[-1]
 
 
 def mapping_get(uri, mapping):
-    """Look up the URI in the given mapping and return the result. Throws KeyError if no matching mapping was found."""
+    """Look up the URI in the given mapping and return the result.
+
+    Throws KeyError if no matching mapping was found.
+
+    """
     ln = localname(uri)
     # 1. try to match URI keys
     for k, v in mapping.items():
@@ -109,7 +113,11 @@ def mapping_get(uri, mapping):
 
 
 def mapping_match(uri, mapping):
-    """Determine whether the given URI matches one of the given mappings. Returns True if a match was found, False otherwise."""
+    """Determine whether the given URI matches one of the given mappings.
+
+    Returns True if a match was found, False otherwise.
+
+    """
     try:
         val = mapping_get(uri, mapping)
         return True
@@ -134,8 +142,12 @@ def in_general_ns(uri):
 
 def replace_subject(rdf, fromuri, touri):
     """Replace all occurrences of fromuri as subject with touri in the given
-       model. If touri=None, will delete all occurrences of fromuri instead.
-       If touri is a list or tuple of URIRefs, all values will be inserted."""
+    model.
+
+    If touri=None, will delete all occurrences of fromuri instead.
+    If touri is a list or tuple of URIRefs, all values will be inserted.
+
+    """
     if fromuri == touri:
         return
     for p, o in rdf.predicate_objects(fromuri):
@@ -149,12 +161,16 @@ def replace_subject(rdf, fromuri, touri):
 
 def replace_predicate(rdf, fromuri, touri, subjecttypes=None, inverse=False):
     """Replace all occurrences of fromuri as predicate with touri in the given
-       model. If touri=None, will delete all occurrences of fromuri instead.
-       If touri is a list or tuple of URIRef, all values will be inserted. If
-       touri is a list of (URIRef, boolean) tuples, the boolean value will be
-       used to determine whether an inverse property is created (if True) or
-       not (if False). If a subjecttypes sequence is given, modify only those
-       triples where the subject is one of the provided types."""
+    model.
+
+    If touri=None, will delete all occurrences of fromuri instead.
+    If touri is a list or tuple of URIRef, all values will be inserted. If
+    touri is a list of (URIRef, boolean) tuples, the boolean value will be
+    used to determine whether an inverse property is created (if True) or
+    not (if False). If a subjecttypes sequence is given, modify only those
+    triples where the subject is one of the provided types.
+
+    """
 
     if fromuri == touri:
         return
@@ -184,9 +200,13 @@ def replace_predicate(rdf, fromuri, touri, subjecttypes=None, inverse=False):
 
 def replace_object(rdf, fromuri, touri, predicate=None):
     """Replace all occurrences of fromuri as object with touri in the given
-       model. If touri=None, will delete all occurrences of fromuri instead.
-       If touri is a list or tuple of URIRef, all values will be inserted.
-       If predicate is given, modify only triples with the given predicate."""
+    model.
+
+    If touri=None, will delete all occurrences of fromuri instead.
+    If touri is a list or tuple of URIRef, all values will be inserted.
+    If predicate is given, modify only triples with the given predicate.
+
+    """
     if fromuri == touri:
         return
     for s, p in rdf.subject_predicates(fromuri):
@@ -202,8 +222,11 @@ def replace_object(rdf, fromuri, touri, predicate=None):
 
 def replace_uri(rdf, fromuri, touri):
     """Replace all occurrences of fromuri with touri in the given model.
-       If touri is a list or tuple of URIRef, all values will be inserted.
-       If touri=None, will delete all occurrences of fromuri instead."""
+
+    If touri is a list or tuple of URIRef, all values will be inserted.
+    If touri=None, will delete all occurrences of fromuri instead.
+
+    """
     replace_subject(rdf, fromuri, touri)
     replace_predicate(rdf, fromuri, touri)
     replace_object(rdf, fromuri, touri)
@@ -296,7 +319,11 @@ def get_concept_scheme(rdf, label=None, language=None):
 
 
 def detect_namespace(rdf):
-    """Try to automatically detect the URI namespace of the vocabulary. Return namespace as URIRef."""
+    """Try to automatically detect the URI namespace of the vocabulary.
+
+    Return namespace as URIRef.
+
+    """
 
     # pick a concept
     conc = rdf.value(None, RDF.type, SKOS.Concept, any=True)
@@ -613,7 +640,8 @@ def transform_aggregate_concepts(rdf, cs, relationmap, aggregates):
 
 
 def transform_deprecated_concepts(rdf, cs):
-    """Transform deprecated concepts so they are in their own concept scheme"""
+    """Transform deprecated concepts so they are in their own concept
+    scheme."""
 
     deprecated_concepts = []
 
@@ -632,13 +660,16 @@ def transform_deprecated_concepts(rdf, cs):
 
 def enrich_relations(rdf, enrich_mappings, use_narrower, use_transitive):
     """Enrich the SKOS relations according to SKOS semantics, including
-       subproperties of broader and symmetric related properties. If
-       use_narrower is True, include inverse narrower relations for all
-       broader relations. If use_narrower is False, instead remove all
-       narrower relations, replacing them with inverse broader relations. If
-       use_transitive is True, calculate transitive hierarchical relationships
-       (broaderTransitive, and also narrowerTransitive if use_narrower is
-       True) and include them in the model."""
+    subproperties of broader and symmetric related properties. If use_narrower
+    is True, include inverse narrower relations for all broader relations. If
+    use_narrower is False, instead remove all narrower relations, replacing
+    them with inverse broader relations. If use_transitive is True, calculate
+    transitive hierarchical relationships.
+
+    (broaderTransitive, and also narrowerTransitive if use_narrower is
+    True) and include them in the model.
+
+    """
 
     # 1. first enrich mapping relationships (because they affect regular ones)
 
@@ -722,7 +753,8 @@ def enrich_relations(rdf, enrich_mappings, use_narrower, use_transitive):
 
 
 def setup_top_concepts(rdf, mark_top_concepts):
-    """Determine the top concepts of each concept scheme and mark them using hasTopConcept/topConceptOf."""
+    """Determine the top concepts of each concept scheme and mark them using
+    hasTopConcept/topConceptOf."""
 
     for cs in sorted(rdf.subjects(RDF.type, SKOS.ConceptScheme)):
         for conc in sorted(rdf.subjects(SKOS.inScheme, cs)):
@@ -744,7 +776,8 @@ def setup_top_concepts(rdf, mark_top_concepts):
 
 
 def setup_concept_scheme(rdf, defaultcs):
-    """Make sure all concepts have an inScheme property, using the given default concept scheme if necessary."""
+    """Make sure all concepts have an inScheme property, using the given
+    default concept scheme if necessary."""
     for conc in rdf.subjects(RDF.type, SKOS.Concept):
         # check concept scheme
         cs = rdf.value(conc, SKOS.inScheme, None, any=True)
@@ -808,8 +841,12 @@ def cleanup_properties(rdf):
 
 def find_reachable(rdf, res):
     """Return the set of reachable resources starting from the given resource,
-       excluding the seen set of resources. Note that the seen set is modified
-       in-place to reflect the ongoing traversal."""
+    excluding the seen set of resources.
+
+    Note that the seen set is modified
+    in-place to reflect the ongoing traversal.
+
+    """
 
     starttime = time.time()
 
@@ -851,7 +888,8 @@ def find_reachable(rdf, res):
 
 
 def cleanup_unreachable(rdf):
-    """Remove triples which cannot be reached from the concepts by graph traversal."""
+    """Remove triples which cannot be reached from the concepts by graph
+    traversal."""
 
     all_subjects = set(rdf.subjects())
 
@@ -1103,7 +1141,7 @@ def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
 
 
 def get_option_parser(defaults):
-    """Create and return an OptionParser with the given defaults"""
+    """Create and return an OptionParser with the given defaults."""
     # based on recipe from:
     # http://stackoverflow.com/questions/1880404/using-a-file-to-store-optparse-arguments
 
@@ -1245,7 +1283,7 @@ def expand_mapping_target(namespaces, val):
 
 
 def main():
-    """Read command line parameters and make a transform based on them"""
+    """Read command line parameters and make a transform based on them."""
 
     namespaces = DEFAULT_NAMESPACES
     typemap = {}
