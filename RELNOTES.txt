@@ -1,5 +1,17 @@
 Skosify release notes
 
+v1.0 - 2014-01-14
+
+Support both Python 2.x and 3.x with the same code (#35)
+PEP 8 coding style conformance (#39)
+Enable mapping of relations to inverse properties (#32)
+Enable mapping of types, literals and relations to multiple values (#34)
+Remove bundled SetStore in favor of rdflib 4.x, where it's included (#33)
+Add enrich_mappings option, making mapping inferences optional (#29)
+Add mark_top_concepts option, making top concept marking optional (#31)
+Fixes for conversion of FinnONTO ontologies (e.g. #30)
+More deterministic RDF and logging output
+
 v0.6 - 2013-01-29
 
 Release with mostly minor improvements to the code to improve robustness and
