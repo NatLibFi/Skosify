@@ -103,7 +103,7 @@ fieldset {
   text-align: center;
   font-size: small;
   padding: 0.2em;
-}	
+}
 #footer a {
   color: #3333ff;
 }

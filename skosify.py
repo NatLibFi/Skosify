@@ -317,7 +317,8 @@ def detect_namespace(rdf):
     return ns
 
 
-def create_concept_scheme(rdf, ns, lname='conceptscheme', label=None, language=None):
+def create_concept_scheme(
+        rdf, ns, lname='conceptscheme', label=None, language=None):
     """Create a skos:ConceptScheme in the model and return it."""
 
     ont = None
@@ -763,15 +764,15 @@ def cleanup_classes(rdf):
                 replace_subject(rdf, cl, None)
                 continue
             # if there are instances of the class, keep the class def
-            if rdf.value(None, RDF.type, cl, any=True) != None:
+            if rdf.value(None, RDF.type, cl, any=True) is not None:
                 continue
             # if the class is used in a domain/range/equivalentClass
             # definition, keep the class def
-            if rdf.value(None, RDFS.domain, cl, any=True) != None:
+            if rdf.value(None, RDFS.domain, cl, any=True) is not None:
                 continue
-            if rdf.value(None, RDFS.range, cl, any=True) != None:
+            if rdf.value(None, RDFS.range, cl, any=True) is not None:
                 continue
-            if rdf.value(None, OWL.equivalentClass, cl, any=True) != None:
+            if rdf.value(None, OWL.equivalentClass, cl, any=True) is not None:
                 continue
 
             # if the class is also a skos:Concept or skos:Collection, only
