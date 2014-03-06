@@ -1,5 +1,9 @@
 Skosify release notes
 
+v1.x-dev
+
+Generated ConceptScheme URI now defaults to namespace, not ns:conceptscheme.
+
 v1.0 - 2014-01-14
 
 Support both Python 2.x and 3.x with the same code (#35)
