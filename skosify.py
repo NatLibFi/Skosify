@@ -353,7 +353,7 @@ def detect_namespace(rdf):
 
 
 def create_concept_scheme(
-        rdf, ns, lname='conceptscheme', label=None, language=None):
+        rdf, ns, lname='', label=None, language=None):
     """Create a skos:ConceptScheme in the model and return it."""
 
     ont = None
