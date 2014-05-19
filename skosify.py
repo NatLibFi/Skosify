@@ -555,7 +555,7 @@ def transform_labels(rdf, defaultlanguage):
     # make a set of (concept, language) tuples for concepts which have
     # candidateLabels in some language
     conc_lang = set([(c, l.language)
-                    for c, l in rdf.subject_objects(SKOSEXT.candidateLabel)])
+                     for c, l in rdf.subject_objects(SKOSEXT.candidateLabel)])
     for conc, lang in conc_lang:
         # check whether there are already prefLabels for this concept in this
         # language
@@ -1060,11 +1060,13 @@ def check_hierarchy(rdf, break_cycles, keep_related, mark_top_concepts,
                     conc1, conc2)
                 rdf.remove((conc1, SKOS.related, conc2))
                 rdf.remove((conc2, SKOS.related, conc1))
-    
-    # check for hierarchical redundancy and eliminate it, if configured to do so
-    for conc,parent1 in rdf.subject_objects(SKOS.broader):
+
+    # check for hierarchical redundancy and eliminate it, if configured to do
+    # so
+    for conc, parent1 in rdf.subject_objects(SKOS.broader):
         for parent2 in rdf.objects(conc, SKOS.broader):
-            if parent1 == parent2: continue # must be different
+            if parent1 == parent2:
+                continue  # must be different
             if parent2 in rdf.transitive_objects(parent1, SKOS.broader):
                 if eliminate_redundancy:
                     logging.warning(
