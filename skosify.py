@@ -70,6 +70,7 @@ DEFAULT_OPTIONS = {
     'aggregates': False,
     'keep_related': False,
     'break_cycles': False,
+    'eliminate_redundancy': False,
     'cleanup_classes': False,
     'cleanup_properties': False,
     'cleanup_unreachable': False,
@@ -1018,7 +1019,8 @@ def check_hierarchy_visit(rdf, node, parent, break_cycles, status):
         pass
 
 
-def check_hierarchy(rdf, break_cycles, keep_related, mark_top_concepts):
+def check_hierarchy(rdf, break_cycles, keep_related, mark_top_concepts,
+                    eliminate_redundancy):
     # check for cycles in the skos:broader hierarchy
     # using a recursive depth first search algorithm
     starttime = time.time()
@@ -1058,6 +1060,27 @@ def check_hierarchy(rdf, break_cycles, keep_related, mark_top_concepts):
                     conc1, conc2)
                 rdf.remove((conc1, SKOS.related, conc2))
                 rdf.remove((conc2, SKOS.related, conc1))
+    
+    # check for hierarchical redundancy and eliminate it, if configured to do so
+    for conc,parent1 in rdf.subject_objects(SKOS.broader):
+        for parent2 in rdf.objects(conc, SKOS.broader):
+            if parent1 == parent2: continue # must be different
+            if parent2 in rdf.transitive_objects(parent1, SKOS.broader):
+                if eliminate_redundancy:
+                    logging.warning(
+                        "Eliminating redundant hierarchical relationship: "
+                        "%s skos:broader %s",
+                        conc, parent2)
+                    rdf.remove((conc, SKOS.broader, parent2))
+                    rdf.remove((conc, SKOS.broaderTransitive, parent2))
+                    rdf.remove((parent2, SKOS.narrower, conc))
+                    rdf.remove((parent2, SKOS.narrowerTransitive, conc))
+                else:
+                    logging.warning(
+                        "Redundant hierarchical relationship "
+                        "%s skos:broader %s found, but not eliminated "
+                        "because eliminate_redundancy is not set",
+                        conc, parent2)
 
     endtime = time.time()
     logging.debug("check_hierarchy took %f seconds", (endtime - starttime))
@@ -1158,7 +1181,8 @@ def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
     logging.debug("Phase 8: Checking concept hierarchy")
     # check hierarchy for cycles
     check_hierarchy(voc, options.break_cycles,
-                    options.keep_related, options.mark_top_concepts)
+                    options.keep_related, options.mark_top_concepts,
+                    options.eliminate_redundancy)
 
     logging.debug("Phase 9: Checking labels")
     # check for duplicate labels
@@ -1287,24 +1311,34 @@ def get_option_parser(defaults):
     group.add_option('-b', '--no-break-cycles', dest="break_cycles",
                      action="store_false",
                      help="Don't break cycles in the skos:broader hierarchy.")
+    group.add_option('--eliminate-redundancy', action="store_true",
+                     help="Eliminate hierarchical redundancy in the "
+                          "skos:broader hierarchy.")
+    group.add_option('--no-eliminate-redundancy', dest="eliminate_redundancy",
+                     action="store_false",
+                     help="Don't eliminate hierarchical redundancy in the "
+                          "skos:broader hierarchy.")
     parser.add_option_group(group)
 
     group = optparse.OptionGroup(parser, "Cleanup Options")
     group.add_option('--cleanup-classes', action="store_true",
                      help="Remove definitions of classes with no instances.")
-    group.add_option('--no-cleanup-classes', action="store_false",
+    group.add_option('--no-cleanup-classes', dest='cleanup_classes',
+                     action="store_false",
                      help="Don't remove definitions "
                           "of classes with no instances.")
     group.add_option('--cleanup-properties', action="store_true",
                      help="Remove definitions of properties "
                           "which have not been used.")
     group.add_option('--no-cleanup-properties', action="store_false",
+                     dest='cleanup_properties',
                      help="Don't remove definitions of properties "
                           "which have not been used.")
     group.add_option('--cleanup-unreachable', action="store_true",
                      help="Remove triples which can not be reached "
                           "by a traversal from the main vocabulary graph.")
     group.add_option('--no-cleanup-unreachable', action="store_false",
+                     dest='cleanup_unreachable',
                      help="Don't remove triples which can not be reached "
                           "by a traversal from the main vocabulary graph.")
     parser.add_option_group(group)
