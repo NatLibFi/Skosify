@@ -12,6 +12,7 @@ from __future__ import print_function
 import sys
 import time
 import logging
+import datetime
 
 try:
     import configparser
@@ -76,6 +77,7 @@ DEFAULT_OPTIONS = {
     'cleanup_unreachable': False,
     'namespace': None,
     'label': None,
+    'set_modified': False,
     'default_language': None,
     'preflabel_policy': 'shortest',
     'debug': False,
@@ -283,11 +285,11 @@ def setup_namespaces(rdf, namespaces):
         rdf.namespace_manager.bind(prefix, uri)
 
 
-def get_concept_scheme(rdf, label=None, language=None):
+def get_concept_scheme(rdf):
     """Return a skos:ConceptScheme contained in the model.
 
     Returns None if no skos:ConceptScheme is present.
-    Optionally add a label if the concept scheme doesn't have a label."""
+    """
     # add explicit type
     for s, o in rdf.subject_objects(SKOS.inScheme):
         if not isinstance(o, Literal):
@@ -306,20 +308,6 @@ def get_concept_scheme(rdf, label=None, language=None):
         cs = css[0]
     else:
         cs = None
-
-    # check whether the concept scheme is unlabeled, and label it if possible
-    labels = list(rdf.objects(cs, RDFS.label)) + \
-        list(rdf.objects(cs, SKOS.prefLabel))
-    if len(labels) == 0:
-        if not label:
-            logging.warning(
-                "Unlabeled concept scheme detected. "
-                "Use --label option to set the concept scheme label.")
-        else:
-            logging.info(
-                "Unlabeled concept scheme detected. Setting label to '%s'" %
-                label)
-            rdf.add((cs, RDFS.label, Literal(label, language)))
 
     return cs
 
@@ -353,8 +341,7 @@ def detect_namespace(rdf):
     return ns
 
 
-def create_concept_scheme(
-        rdf, ns, lname='', label=None, language=None):
+def create_concept_scheme(rdf, ns, lname=''):
     """Create a skos:ConceptScheme in the model and return it."""
 
     ont = None
@@ -386,12 +373,6 @@ def create_concept_scheme(
     cs = NS[lname]
 
     rdf.add((cs, RDF.type, SKOS.ConceptScheme))
-    if label is not None:
-        rdf.add((cs, RDFS.label, Literal(label, language)))
-    else:
-        logging.warning(
-            "Unlabeled concept scheme created. "
-            "Use --label option to set the concept scheme label.")
 
     if ont is not None:
         rdf.remove((ont, RDF.type, OWL.Ontology))
@@ -408,6 +389,31 @@ def create_concept_scheme(
         replace_uri(rdf, ont, cs)
 
     return cs
+
+def initialize_concept_scheme(rdf, cs, label, language, set_modified):
+    """Initialize a concept scheme: Optionally add a label if the concept
+    scheme doesn't have a label, and optionally add a dct:modified
+    timestamp."""
+    
+    # check whether the concept scheme is unlabeled, and label it if possible
+    labels = list(rdf.objects(cs, RDFS.label)) + \
+        list(rdf.objects(cs, SKOS.prefLabel))
+    if len(labels) == 0:
+        if not label:
+            logging.warning(
+                "Concept scheme has no label(s). "
+                "Use --label option to set the concept scheme label.")
+        else:
+            logging.info(
+                "Unlabeled concept scheme detected. Setting label to '%s'" %
+                label)
+            rdf.add((cs, RDFS.label, Literal(label, language)))
+    
+    if set_modified:
+        curdate = datetime.datetime.utcnow().replace(microsecond=0).isoformat() + 'Z'
+        rdf.remove((cs, DCT.modified, None))
+        rdf.add((cs, DCT.modified, Literal(curdate, datatype=XSD.dateTime)))
+
 
 
 def infer_classes(rdf):
@@ -1150,12 +1156,13 @@ def skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options):
     transform_collections(voc)
 
     # find/create concept scheme
-    cs = get_concept_scheme(voc, label=options.label,
-                            language=options.default_language)
+    cs = get_concept_scheme(voc)
     if not cs:
-        cs = create_concept_scheme(voc, options.namespace,
-                                   label=options.label,
-                                   language=options.default_language)
+        cs = create_concept_scheme(voc, options.namespace)
+    initialize_concept_scheme(voc, cs,
+                              label=options.label,
+                              language=options.default_language,
+                              set_modified=options.set_modified)
 
     transform_aggregate_concepts(voc, cs, relationmap, options.aggregates)
     transform_deprecated_concepts(voc, cs)
@@ -1257,6 +1264,12 @@ def get_option_parser(defaults):
                      help='Policy for handling multiple prefLabels '
                           'with the same language tag. '
                           'Possible values: shortest, longest, all.')
+    group.add_option('--set-modified', dest="set_modified",
+                     action="store_true",
+                     help='Set modification date on the ConceptScheme')
+    group.add_option('--no-set-modified', dest="set_modified",
+                     action="store_false",
+                     help="Don't set modification date on the ConceptScheme")
     parser.add_option_group(group)
 
     group = optparse.OptionGroup(parser, "Vocabulary Structure Options")
