@@ -17,5 +17,5 @@ For more usage information, try
 ./skosify.py --help
 
 
-Additional documentation can be found in the Google Code wiki:
-http://code.google.com/p/skosify/wiki/GettingStarted
+Additional documentation can be found in the GitHub project wiki:
+https://github.com/NatLibFi/Skosify/wiki
