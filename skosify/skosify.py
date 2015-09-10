@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Osma Suominen <osma.suominen@tkk.fi>
-# Copyright (c) 2010-2011 Aalto University and University of Helsinki
+# Copyright (c) 2010-2015 Aalto University and University of Helsinki
 # MIT License
 # see README.txt for more information
 
@@ -416,7 +416,32 @@ class Skosify(object):
             rdf.remove((cs, DCT.modified, None))
             rdf.add((cs, DCT.modified, Literal(curdate, datatype=XSD.dateTime)))
 
+    def transform_sparql_update(self, rdf, update_query):
+        """Perform a SPARQL Update transformation on the RDF data."""
+        
+        logging.debug("performing SPARQL Update transformation")
+        
+        if update_query[0] == '@': # actual query should be read from file
+            update_query = file(update_query[1:]).read()
+        
+        logging.debug("update query: %s", update_query)
+        rdf.update(update_query)
 
+    def transform_sparql_construct(self, rdf, construct_query):
+        """Perform a SPARQL CONSTRUCT query on the RDF data and return a new graph."""
+        
+        logging.debug("performing SPARQL CONSTRUCT transformation")
+        
+        if construct_query[0] == '@': # actual query should be read from file
+            construct_query = file(construct_query[1:]).read()
+        
+        logging.debug("CONSTRUCT query: %s", construct_query)
+
+        newgraph = Graph()
+        for triple in rdf.query(construct_query):
+            newgraph.add(triple)
+
+        return newgraph
 
     def infer_classes(self, rdf):
         """Perform RDFS subclass inference.
@@ -1138,6 +1163,10 @@ class Skosify(object):
         inputtime = time.time()
 
         logging.debug("Phase 2: Performing inferences")
+        if options.update_query is not None:
+            self.transform_sparql_update(voc, options.update_query)
+        if options.construct_query is not None:
+            voc = self.transform_sparql_construct(voc, options.construct_query)
         if options.infer:
             self.infer_classes(voc)
             self.infer_properties(voc)
@@ -1234,22 +1263,46 @@ class Skosify(object):
                                'from the given configuration file.')
         parser.add_option('-o', '--output', type='string',
                           help='Output file name. Default is "-" (stdout).')
-        parser.add_option('-f', '--from-format', type='string',
-                          help='Input format. '
-                               'Default is to detect format '
-                               'based on file extension. '
-                               'Possible values: xml, n3, turtle, nt...')
-        parser.add_option('-F', '--to-format', type='string',
-                          help='Output format. '
-                               'Default is to detect format '
-                               'based on file extension. '
-                               'Possible values: xml, n3, turtle, nt...')
         parser.add_option('-D', '--debug', action="store_true",
                           help='Show debug output.')
         parser.add_option('-d', '--no-debug', dest="debug",
                           action="store_false", help='Hide debug output.')
         parser.add_option('-O', '--log', type='string',
                           help='Log file name. Default is to use standard error.')
+
+
+        group = optparse.OptionGroup(
+            parser, "Input and Output Options")
+        group.add_option('-f', '--from-format', type='string',
+                          help='Input format. '
+                               'Default is to detect format '
+                               'based on file extension. '
+                               'Possible values: xml, n3, turtle, nt...')
+        group.add_option('-F', '--to-format', type='string',
+                          help='Output format. '
+                               'Default is to detect format '
+                               'based on file extension. '
+                               'Possible values: xml, n3, turtle, nt...')
+        group.add_option('--update-query', type='string',
+                          help='SPARQL update query. '
+                               'This query is executed against the input '
+                               'data before processing it. '
+                               'The value can be either the actual query, '
+                               'or "@filename".')
+        group.add_option('--construct-query', type='string',
+                          help='SPARQL CONSTRUCT query. '
+                               'This query is executed against the input '
+                               'data and the result graph is used as the '
+                               'actual input.'
+                               'The value can be either the actual query, '
+                               'or "@filename".')
+        group.add_option('-I', '--infer', action="store_true",
+                         help='Perform RDFS subclass/subproperty inference '
+                              'before transforming input.')
+        group.add_option('-i', '--no-infer', dest="infer", action="store_false",
+                         help="Don't perform RDFS subclass/subproperty inference "
+                              "before transforming input.")
+        parser.add_option_group(group)
 
         group = optparse.OptionGroup(
             parser, "Concept Scheme and Labelling Options")
@@ -1275,12 +1328,6 @@ class Skosify(object):
         parser.add_option_group(group)
 
         group = optparse.OptionGroup(parser, "Vocabulary Structure Options")
-        group.add_option('-I', '--infer', action="store_true",
-                         help='Perform RDFS subclass/subproperty inference '
-                              'before transforming input.')
-        group.add_option('-i', '--no-infer', dest="infer", action="store_false",
-                         help="Don't perform RDFS subclass/subproperty inference "
-                              "before transforming input.")
         group.add_option('-E', '--mark-top-concepts', action="store_true",
                          help='Mark top-level concepts in the hierarchy '
                               'as top concepts (entry points).')
