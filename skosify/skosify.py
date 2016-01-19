@@ -366,7 +366,7 @@ class Skosify(object):
                     "No skos:ConceptScheme or owl:Ontology found. "
                     "Using namespace auto-detection for creating concept scheme.")
                 ns = self.detect_namespace(rdf)
-            elif ont.endswith('/') or ont.endswith('#'):
+            elif ont.endswith('/') or ont.endswith('#') or ont.endswith(':'):
                 ns = ont
             else:
                 ns = ont + '/'
@@ -1293,7 +1293,7 @@ class Skosify(object):
                           help='SPARQL CONSTRUCT query. '
                                'This query is executed against the input '
                                'data and the result graph is used as the '
-                               'actual input.'
+                               'actual input. '
                                'The value can be either the actual query, '
                                'or "@filename".')
         group.add_option('-I', '--infer', action="store_true",
