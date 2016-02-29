@@ -82,6 +82,8 @@ DEFAULT_OPTIONS = {
     'preflabel_policy': 'shortest',
     'debug': False,
     'infer': False,
+    'update_query': None,
+    'construct_query': None,
 }
 
 class Skosify(object):
