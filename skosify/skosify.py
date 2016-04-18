@@ -886,7 +886,9 @@ class Skosify(object):
 
         Reemoves SKOS and DC property definitions and definitions of unused
         properties."""
-        for t in (RDF.Property, OWL.DatatypeProperty, OWL.ObjectProperty):
+        for t in (RDF.Property, OWL.DatatypeProperty, OWL.ObjectProperty,
+                  OWL.SymmetricProperty, OWL.TransitiveProperty,
+                  OWL.InverseFunctionalProperty, OWL.FunctionalProperty):
             for prop in rdf.subjects(RDF.type, t):
                 if prop.startswith(SKOS):
                     logging.debug("removing SKOS property definition: %s", prop)
