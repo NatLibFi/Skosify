@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
+# encoding=utf8
+#
 # Osma Suominen <osma.suominen@tkk.fi>
 # Copyright (c) 2010-2015 Aalto University and University of Helsinki
 # MIT License
-# see README.txt for more information
+# see README.rst for more information
 
 # python2 compatibility
 from __future__ import print_function
@@ -14,19 +14,7 @@ import time
 import logging
 import datetime
 
-try:
-    import configparser
-except ImportError:
-    import ConfigParser as configparser
-
-try:
-    from rdflib import URIRef, BNode, Literal, Namespace, RDF, RDFS
-except ImportError:
-    print("You need to install the rdflib Python library (http://rdflib.net).",
-          file=sys.stderr)
-    print("On Debian/Ubuntu, try: sudo apt-get install python-rdflib",
-          file=sys.stderr)
-    sys.exit(1)
+from rdflib import URIRef, BNode, Literal, Namespace, RDF, RDFS
 
 try:
     # rdflib 2.4.x simple Graph
@@ -49,21 +37,18 @@ XSD = Namespace("http://www.w3.org/2001/XMLSchema#")
 
 # default namespaces to register in the graph
 DEFAULT_NAMESPACES = {
-    'rdf': RDFNS,
-    'rdfs': RDFSNS,
-    'owl': OWL,
-    'skos': SKOS,
-    'dc': DC,
-    'dct': DCT,
-    'xsd': XSD,
+    'rdf': RDF,
+    'rdfs': RDFS,
+    'owl': Namespace("http://www.w3.org/2002/07/owl#"),
+    'skos': Namespace("http://www.w3.org/2004/02/skos/core#"),
+    'dc': Namespace("http://purl.org/dc/elements/1.1/"),
+    'dct': Namespace("http://purl.org/dc/terms/"),
+    'xsd': Namespace("http://www.w3.org/2001/XMLSchema#"),
 }
 
 # default values for config file / command line options
 DEFAULT_OPTIONS = {
-    'output': '-',
-    'log': None,
     'from_format': None,
-    'to_format': None,
     'mark_top_concepts': True,
     'narrower': True,
     'transitive': False,
@@ -80,19 +65,17 @@ DEFAULT_OPTIONS = {
     'set_modified': False,
     'default_language': None,
     'preflabel_policy': 'shortest',
-    'debug': False,
     'infer': False,
     'update_query': None,
     'construct_query': None,
 }
 
-class Skosify(object):
 
+class Skosify(object):
 
     def localname(self, uri):
         """Determine the local name (after namespace) of the given URI."""
         return uri.split('/')[-1].split('#')[-1]
-
 
     def mapping_get(self, uri, mapping):
         """Look up the URI in the given mapping and return the result.
@@ -118,7 +101,6 @@ class Skosify(object):
                 return v
         raise KeyError(uri)
 
-
     def mapping_match(self, uri, mapping):
         """Determine whether the given URI matches one of the given mappings.
 
@@ -130,7 +112,6 @@ class Skosify(object):
             return True
         except KeyError:
             return False
-
 
     def in_general_ns(self, uri):
         """Return True iff the URI is in a well-known general RDF namespace.
@@ -148,7 +129,6 @@ class Skosify(object):
                 return True
         return False
 
-
     def replace_subject(self, rdf, fromuri, touri):
         """Replace occurrences of fromuri as subject with touri in given model.
 
@@ -165,7 +145,6 @@ class Skosify(object):
                     touri = [touri]
                 for uri in touri:
                     rdf.add((uri, p, o))
-
 
     def replace_predicate(self, rdf, fromuri, touri, subjecttypes=None, inverse=False):
         """Replace occurrences of fromuri as predicate with touri in given model.
@@ -204,7 +183,6 @@ class Skosify(object):
                     else:
                         rdf.add((s, uri, o))
 
-
     def replace_object(self, rdf, fromuri, touri, predicate=None):
         """Replace all occurrences of fromuri as object with touri in the given
         model.
@@ -226,7 +204,6 @@ class Skosify(object):
                 for uri in touri:
                     rdf.add((s, p, uri))
 
-
     def replace_uri(self, rdf, fromuri, touri):
         """Replace all occurrences of fromuri with touri in the given model.
 
@@ -238,18 +215,15 @@ class Skosify(object):
         self.replace_predicate(rdf, fromuri, touri)
         self.replace_object(rdf, fromuri, touri)
 
-
     def delete_uri(self, rdf, uri):
         """Delete all occurrences of uri in the given model."""
         self.replace_uri(rdf, uri, None)
-
 
     def find_prop_overlap(self, rdf, prop1, prop2):
         """Generate (subject,object) pairs connected by both prop1 and prop2."""
         for s, o in sorted(rdf.subject_objects(prop1)):
             if (s, prop2, o) in rdf:
                 yield (s, o)
-
 
     def read_input(self, filenames, infmt):
         """Read the given RDF file(s) and return an rdflib Graph object."""
@@ -283,11 +257,9 @@ class Skosify(object):
 
         return rdf
 
-
     def setup_namespaces(self, rdf, namespaces):
         for prefix, uri in namespaces.items():
             rdf.namespace_manager.bind(prefix, uri)
-
 
     def get_concept_scheme(self, rdf):
         """Return a skos:ConceptScheme contained in the model.
@@ -314,7 +286,6 @@ class Skosify(object):
             cs = None
 
         return cs
-
 
     def detect_namespace(self, rdf):
         """Try to automatically detect the URI namespace of the vocabulary.
@@ -343,7 +314,6 @@ class Skosify(object):
             "Namespace auto-detected to '%s' "
             "- you can override this with the --namespace option.", ns)
         return ns
-
 
     def create_concept_scheme(self, rdf, ns, lname=''):
         """Create a skos:ConceptScheme in the model and return it."""
@@ -385,7 +355,8 @@ class Skosify(object):
                 rdf.remove((ont, OWL.imports, o))
             # remove protege specific properties
             for p, o in rdf.predicate_objects(ont):
-                prot = URIRef('http://protege.stanford.edu/plugins/owl/protege#')
+                prot = URIRef(
+                    'http://protege.stanford.edu/plugins/owl/protege#')
                 if p.startswith(prot):
                     rdf.remove((ont, p, o))
             # move remaining properties (dc:title etc.) of the owl:Ontology into
@@ -398,7 +369,7 @@ class Skosify(object):
         """Initialize a concept scheme: Optionally add a label if the concept
         scheme doesn't have a label, and optionally add a dct:modified
         timestamp."""
-        
+
         # check whether the concept scheme is unlabeled, and label it if possible
         labels = list(rdf.objects(cs, RDFS.label)) + \
             list(rdf.objects(cs, SKOS.prefLabel))
@@ -412,7 +383,7 @@ class Skosify(object):
                     "Unlabeled concept scheme detected. Setting label to '%s'" %
                     label)
                 rdf.add((cs, RDFS.label, Literal(label, language)))
-        
+
         if set_modified:
             curdate = datetime.datetime.utcnow().replace(microsecond=0).isoformat() + 'Z'
             rdf.remove((cs, DCT.modified, None))
@@ -420,23 +391,23 @@ class Skosify(object):
 
     def transform_sparql_update(self, rdf, update_query):
         """Perform a SPARQL Update transformation on the RDF data."""
-        
+
         logging.debug("performing SPARQL Update transformation")
-        
-        if update_query[0] == '@': # actual query should be read from file
+
+        if update_query[0] == '@':  # actual query should be read from file
             update_query = file(update_query[1:]).read()
-        
+
         logging.debug("update query: %s", update_query)
         rdf.update(update_query)
 
     def transform_sparql_construct(self, rdf, construct_query):
         """Perform a SPARQL CONSTRUCT query on the RDF data and return a new graph."""
-        
+
         logging.debug("performing SPARQL CONSTRUCT transformation")
-        
-        if construct_query[0] == '@': # actual query should be read from file
+
+        if construct_query[0] == '@':  # actual query should be read from file
             construct_query = file(construct_query[1:]).read()
-        
+
         logging.debug("CONSTRUCT query: %s", construct_query)
 
         newgraph = Graph()
@@ -466,7 +437,6 @@ class Skosify(object):
                 for uc in ucs:
                     rdf.add((res, RDF.type, uc))
 
-
     def infer_properties(self, rdf):
         """Perform RDFS subproperty inference.
 
@@ -487,7 +457,6 @@ class Skosify(object):
             for s, o in rdf.subject_objects(p):
                 for sp in sps:
                     rdf.add((s, sp, o))
-
 
     def transform_concepts(self, rdf, typemap):
         """Transform Concepts into new types, as defined by the config file."""
@@ -513,11 +482,11 @@ class Skosify(object):
             else:
                 logging.info("Don't know what to do with type %s", t)
 
-
     def transform_literals(self, rdf, literalmap):
         """Transform literal properties of Concepts, as defined by config file."""
 
-        affected_types = (SKOS.Concept, SKOS.Collection, SKOSEXT.DeprecatedConcept)
+        affected_types = (SKOS.Concept, SKOS.Collection,
+                          SKOSEXT.DeprecatedConcept)
 
         props = set()
         for t in affected_types:
@@ -532,15 +501,16 @@ class Skosify(object):
                 newval = self.mapping_get(p, literalmap)
                 newuris = [v[0] for v in newval]
                 logging.debug("transform literal %s -> %s", p, str(newuris))
-                self.replace_predicate(rdf, p, newuris, subjecttypes=affected_types)
+                self.replace_predicate(
+                    rdf, p, newuris, subjecttypes=affected_types)
             else:
                 logging.info("Don't know what to do with literal %s", p)
-
 
     def transform_relations(self, rdf, relationmap):
         """Transform YSO-style concept relations into SKOS equivalents."""
 
-        affected_types = (SKOS.Concept, SKOS.Collection, SKOSEXT.DeprecatedConcept)
+        affected_types = (SKOS.Concept, SKOS.Collection,
+                          SKOSEXT.DeprecatedConcept)
 
         props = set()
         for t in affected_types:
@@ -554,10 +524,10 @@ class Skosify(object):
             if self.mapping_match(p, relationmap):
                 newval = self.mapping_get(p, relationmap)
                 logging.debug("transform relation %s -> %s", p, str(newval))
-                self.replace_predicate(rdf, p, newval, subjecttypes=affected_types)
+                self.replace_predicate(
+                    rdf, p, newval, subjecttypes=affected_types)
             else:
                 logging.info("Don't know what to do with relation %s", p)
-
 
     def transform_labels(self, rdf, defaultlanguage):
         # fix labels and documentary notes with extra whitespace
@@ -619,7 +589,6 @@ class Skosify(object):
                 # prefLabel found, make it an altLabel instead
                 rdf.add((conc, SKOS.altLabel, label))
 
-
     def transform_collections(self, rdf):
         for coll in sorted(rdf.subjects(RDF.type, SKOS.Collection)):
             for prop in (SKOS.broader, SKOSEXT.broaderGeneric):
@@ -659,7 +628,6 @@ class Skosify(object):
                         self.localname(relProp), s, coll)
                     rdf.remove((s, relProp, coll))
 
-
     def transform_aggregate_concepts(self, rdf, cs, relationmap, aggregates):
         """Transform YSO-style AggregateConcepts into skos:Concepts within their
            own skos:ConceptScheme, linked to the regular concepts with
@@ -697,7 +665,6 @@ class Skosify(object):
             for conc in aggregate_concepts:
                 rdf.add((conc, SKOS.inScheme, acs))
 
-
     def transform_deprecated_concepts(self, rdf, cs):
         """Transform deprecated concepts so they are in their own concept
         scheme."""
@@ -711,11 +678,11 @@ class Skosify(object):
 
         if len(deprecated_concepts) > 0:
             ns = cs.replace(self.localname(cs), '')
-            dcs = self.create_concept_scheme(rdf, ns, 'deprecatedconceptscheme')
+            dcs = self.create_concept_scheme(
+                rdf, ns, 'deprecatedconceptscheme')
             logging.debug("creating deprecated concept scheme %s", dcs)
             for conc in deprecated_concepts:
                 rdf.add((conc, SKOS.inScheme, dcs))
-
 
     def enrich_relations(self, rdf, enrich_mappings, use_narrower, use_transitive):
         """Enrich the SKOS relations according to SKOS semantics, including
@@ -810,7 +777,6 @@ class Skosify(object):
         for s, o in rdf.subject_objects(SKOS.topConceptOf):
             rdf.add((s, SKOS.inScheme, o))
 
-
     def setup_top_concepts(self, rdf, mark_top_concepts):
         """Determine the top concepts of each concept scheme and mark them using
         hasTopConcept/topConceptOf."""
@@ -836,7 +802,6 @@ class Skosify(object):
                                 "of scheme %s, as mark_top_concepts is disabled",
                                 conc, cs)
 
-
     def setup_concept_scheme(self, rdf, defaultcs):
         """Make sure all concepts have an inScheme property, using the given
         default concept scheme if necessary."""
@@ -845,7 +810,6 @@ class Skosify(object):
             cs = rdf.value(conc, SKOS.inScheme, None, any=True)
             if cs is None:  # need to set inScheme
                 rdf.add((conc, SKOS.inScheme, defaultcs))
-
 
     def cleanup_classes(self, rdf):
         """Remove unnecessary class definitions: definitions of SKOS classes or
@@ -880,7 +844,6 @@ class Skosify(object):
                     logging.debug("removing unused class definition: %s", cl)
                     self.replace_subject(rdf, cl, None)
 
-
     def cleanup_properties(self, rdf):
         """Remove unnecessary property definitions.
 
@@ -891,7 +854,8 @@ class Skosify(object):
                   OWL.InverseFunctionalProperty, OWL.FunctionalProperty):
             for prop in rdf.subjects(RDF.type, t):
                 if prop.startswith(SKOS):
-                    logging.debug("removing SKOS property definition: %s", prop)
+                    logging.debug(
+                        "removing SKOS property definition: %s", prop)
                     self.replace_subject(rdf, prop, None)
                     continue
                 if prop.startswith(DC):
@@ -905,7 +869,6 @@ class Skosify(object):
 
                 logging.debug("removing unused property definition: %s", prop)
                 self.replace_subject(rdf, prop, None)
-
 
     def find_reachable(self, rdf, res):
         """Return the set of reachable resources starting from the given resource,
@@ -954,7 +917,6 @@ class Skosify(object):
 
         return seen
 
-
     def cleanup_unreachable(self, rdf):
         """Remove triples which cannot be reached from the concepts by graph
         traversal."""
@@ -970,7 +932,6 @@ class Skosify(object):
 
         for subj in nonreachable:
             self.delete_uri(rdf, subj)
-
 
     def check_labels(self, rdf, preflabel_policy):
         # check that resources have only one prefLabel per language
@@ -1030,12 +991,12 @@ class Skosify(object):
                 res, label, label.language)
             rdf.remove((res, SKOS.hiddenLabel, label))
 
-
     def check_hierarchy_visit(self, rdf, node, parent, break_cycles, status):
         if status.get(node) is None:
             status[node] = 1  # entered
             for child in sorted(rdf.subjects(SKOS.broader, node)):
-                self.check_hierarchy_visit(rdf, child, node, break_cycles, status)
+                self.check_hierarchy_visit(
+                    rdf, child, node, break_cycles, status)
             status[node] = 2  # set this node as completed
         elif status.get(node) == 1:  # has been entered but not yet done
             if break_cycles:
@@ -1055,7 +1016,6 @@ class Skosify(object):
         elif status.get(node) == 2:  # is completed already
             pass
 
-
     def check_hierarchy(self, rdf, break_cycles, keep_related, mark_top_concepts,
                         eliminate_redundancy):
         # check for cycles in the skos:broader hierarchy
@@ -1065,14 +1025,16 @@ class Skosify(object):
         top_concepts = sorted(rdf.subject_objects(SKOS.hasTopConcept))
         status = {}
         for cs, root in top_concepts:
-            self.check_hierarchy_visit(rdf, root, None, break_cycles, status=status)
+            self.check_hierarchy_visit(
+                rdf, root, None, break_cycles, status=status)
         # double check that all concepts were actually visited in the search,
         # and visit remaining ones if necessary
         recheck_top_concepts = False
         for conc in sorted(rdf.subjects(RDF.type, SKOS.Concept)):
             if conc not in status:
                 recheck_top_concepts = True
-                self.check_hierarchy_visit(rdf, conc, None, break_cycles, status=status)
+                self.check_hierarchy_visit(
+                    rdf, conc, None, break_cycles, status=status)
         if recheck_top_concepts:
             logging.info(
                 "Some concepts not reached in initial cycle detection. "
@@ -1124,40 +1086,11 @@ class Skosify(object):
         endtime = time.time()
         logging.debug("check_hierarchy took %f seconds", (endtime - starttime))
 
-
-    def write_output(self, rdf, filename, fmt):
-        """Serialize the RDF output to the given file (or - for stdout)."""
-        if filename == '-':
-            out = sys.stdout
-        else:
-            out = open(filename, 'wb')
-
-        if not fmt:
-            # determine output format
-            fmt = 'xml'  # default
-            if filename.endswith('n3'):
-                fmt = 'n3'
-            if filename.endswith('nt'):
-                fmt = 'nt'
-            if filename.endswith('ttl'):
-                fmt = 'turtle'
-
-        logging.debug("Writing output file %s (format: %s)", filename, fmt)
-        rdf.serialize(destination=out, format=fmt)
-
-
     def skosify(self, inputfiles, namespaces, typemap, literalmap, relationmap, options):
 
-        # configure logging
-        logformat = '%(levelname)s: %(message)s'
-        loglevel = logging.INFO
-        if options.debug:
-            loglevel = logging.DEBUG
-        if options.log:
-            logging.basicConfig(filename=options.log,
-                                format=logformat, level=loglevel)
-        else:  # logging messages go into stderr by default
-            logging.basicConfig(format=logformat, level=loglevel)
+        # setup options
+        if namespaces is None:
+            namespaces = DEFAULT_NAMESPACES
 
         logging.debug("Skosify starting. $Revision$")
         starttime = time.time()
@@ -1195,17 +1128,18 @@ class Skosify(object):
         if not cs:
             cs = self.create_concept_scheme(voc, options.namespace)
         self.initialize_concept_scheme(voc, cs,
-                                  label=options.label,
-                                  language=options.default_language,
-                                  set_modified=options.set_modified)
+                                       label=options.label,
+                                       language=options.default_language,
+                                       set_modified=options.set_modified)
 
-        self.transform_aggregate_concepts(voc, cs, relationmap, options.aggregates)
+        self.transform_aggregate_concepts(
+            voc, cs, relationmap, options.aggregates)
         self.transform_deprecated_concepts(voc, cs)
 
         logging.debug("Phase 5: Performing SKOS enrichments")
         # enrichments: broader <-> narrower, related <-> related
         self.enrich_relations(voc, options.enrich_mappings,
-                         options.narrower, options.transitive)
+                              options.narrower, options.transitive)
 
         logging.debug("Phase 6: Cleaning up")
         # clean up unused/unnecessary class/property definitions and unreachable
@@ -1234,294 +1168,11 @@ class Skosify(object):
 
         processtime = time.time()
 
-        logging.debug("Phase 10: Writing output")
-
-        self.write_output(voc, options.output, options.to_format)
-        endtime = time.time()
-
         logging.debug("reading input file took  %d seconds",
                       (inputtime - starttime))
         logging.debug("processing took          %d seconds",
                       (processtime - inputtime))
-        logging.debug("writing output file took %d seconds",
-                      (endtime - processtime))
-        logging.debug("total time taken:        %d seconds", (endtime - starttime))
-        logging.debug("Finished Skosify run")
 
+        logging.debug("Phase 10: Writing output")
 
-    def get_option_parser(self, defaults):
-        """Create and return an OptionParser with the given defaults."""
-        # based on recipe from:
-        # http://stackoverflow.com/questions/1880404/using-a-file-to-store-optparse-arguments
-
-        import optparse
-
-        # process command line parameters
-        # e.g. skosify yso.owl -o yso-skos.rdf
-        usage = "Usage: %prog [options] voc1 [voc2 ...]"
-        parser = optparse.OptionParser(usage=usage)
-        parser.set_defaults(**defaults)
-        parser.add_option('-c', '--config', type='string',
-                          help='Read default options '
-                               'and transformation definitions '
-                               'from the given configuration file.')
-        parser.add_option('-o', '--output', type='string',
-                          help='Output file name. Default is "-" (stdout).')
-        parser.add_option('-D', '--debug', action="store_true",
-                          help='Show debug output.')
-        parser.add_option('-d', '--no-debug', dest="debug",
-                          action="store_false", help='Hide debug output.')
-        parser.add_option('-O', '--log', type='string',
-                          help='Log file name. Default is to use standard error.')
-
-
-        group = optparse.OptionGroup(
-            parser, "Input and Output Options")
-        group.add_option('-f', '--from-format', type='string',
-                          help='Input format. '
-                               'Default is to detect format '
-                               'based on file extension. '
-                               'Possible values: xml, n3, turtle, nt...')
-        group.add_option('-F', '--to-format', type='string',
-                          help='Output format. '
-                               'Default is to detect format '
-                               'based on file extension. '
-                               'Possible values: xml, n3, turtle, nt...')
-        group.add_option('--update-query', type='string',
-                          help='SPARQL update query. '
-                               'This query is executed against the input '
-                               'data before processing it. '
-                               'The value can be either the actual query, '
-                               'or "@filename".')
-        group.add_option('--construct-query', type='string',
-                          help='SPARQL CONSTRUCT query. '
-                               'This query is executed against the input '
-                               'data and the result graph is used as the '
-                               'actual input. '
-                               'The value can be either the actual query, '
-                               'or "@filename".')
-        group.add_option('-I', '--infer', action="store_true",
-                         help='Perform RDFS subclass/subproperty inference '
-                              'before transforming input.')
-        group.add_option('-i', '--no-infer', dest="infer", action="store_false",
-                         help="Don't perform RDFS subclass/subproperty inference "
-                              "before transforming input.")
-        parser.add_option_group(group)
-
-        group = optparse.OptionGroup(
-            parser, "Concept Scheme and Labelling Options")
-        group.add_option('-s', '--namespace', type='string',
-                         help='Namespace of vocabulary '
-                              '(usually optional; used to create a ConceptScheme)')
-        group.add_option('-L', '--label', type='string',
-                         help='Label/title for the vocabulary '
-                              '(usually optional; used to label a ConceptScheme)')
-        group.add_option('-l', '--default-language', type='string',
-                         help='Language tag to set for labels '
-                              'with no defined language.')
-        group.add_option('-p', '--preflabel-policy', type='string',
-                         help='Policy for handling multiple prefLabels '
-                              'with the same language tag. '
-                              'Possible values: shortest, longest, all.')
-        group.add_option('--set-modified', dest="set_modified",
-                         action="store_true",
-                         help='Set modification date on the ConceptScheme')
-        group.add_option('--no-set-modified', dest="set_modified",
-                         action="store_false",
-                         help="Don't set modification date on the ConceptScheme")
-        parser.add_option_group(group)
-
-        group = optparse.OptionGroup(parser, "Vocabulary Structure Options")
-        group.add_option('-E', '--mark-top-concepts', action="store_true",
-                         help='Mark top-level concepts in the hierarchy '
-                              'as top concepts (entry points).')
-        group.add_option('-e', '--no-mark-top-concepts',
-                         dest="mark_top_concepts", action="store_false",
-                         help="Don't mark top-level concepts in the hierarchy "
-                              "as top concepts.")
-        group.add_option('-N', '--narrower', action="store_true",
-                         help='Include narrower/narrowerGeneric/narrowerPartitive '
-                              'relationships in the output vocabulary.')
-        group.add_option('-n', '--no-narrower',
-                         dest="narrower", action="store_false",
-                         help="Don't include "
-                              "narrower/narrowerGeneric/narrowerPartitive "
-                              "relationships in the output vocabulary.")
-        group.add_option('-T', '--transitive', action="store_true",
-                         help='Include transitive hierarchy relationships '
-                              'in the output vocabulary.')
-        group.add_option('-t', '--no-transitive',
-                         dest="transitive", action="store_false",
-                         help="Don't include transitive hierarchy relationships "
-                              "in the output vocabulary.")
-        group.add_option('-M', '--enrich-mappings', action="store_true",
-                         help='Perform SKOS enrichments on mapping relationships.')
-        group.add_option('-m', '--no-enrich-mappings', dest="enrich_mappings",
-                         action="store_false",
-                         help="Don't perform SKOS enrichments "
-                              "on mapping relationships.")
-        group.add_option('-A', '--aggregates', action="store_true",
-                         help='Keep AggregateConcepts completely '
-                              'in the output vocabulary.')
-        group.add_option('-a', '--no-aggregates',
-                         dest="aggregates", action="store_false",
-                         help='Remove AggregateConcepts completely '
-                              'from the output vocabulary.')
-        group.add_option('-R', '--keep-related', action="store_true",
-                         help="Keep skos:related relationships "
-                              "within the same hierarchy.")
-        group.add_option('-r', '--no-keep-related',
-                         dest="keep_related", action="store_false",
-                         help="Remove skos:related relationships "
-                              "within the same hierarchy.")
-        group.add_option('-B', '--break-cycles', action="store_true",
-                         help="Break any cycles in the skos:broader hierarchy.")
-        group.add_option('-b', '--no-break-cycles', dest="break_cycles",
-                         action="store_false",
-                         help="Don't break cycles in the skos:broader hierarchy.")
-        group.add_option('--eliminate-redundancy', action="store_true",
-                         help="Eliminate hierarchical redundancy in the "
-                              "skos:broader hierarchy.")
-        group.add_option('--no-eliminate-redundancy', dest="eliminate_redundancy",
-                         action="store_false",
-                         help="Don't eliminate hierarchical redundancy in the "
-                              "skos:broader hierarchy.")
-        parser.add_option_group(group)
-
-        group = optparse.OptionGroup(parser, "Cleanup Options")
-        group.add_option('--cleanup-classes', action="store_true",
-                         help="Remove definitions of classes with no instances.")
-        group.add_option('--no-cleanup-classes', dest='cleanup_classes',
-                         action="store_false",
-                         help="Don't remove definitions "
-                              "of classes with no instances.")
-        group.add_option('--cleanup-properties', action="store_true",
-                         help="Remove definitions of properties "
-                              "which have not been used.")
-        group.add_option('--no-cleanup-properties', action="store_false",
-                         dest='cleanup_properties',
-                         help="Don't remove definitions of properties "
-                              "which have not been used.")
-        group.add_option('--cleanup-unreachable', action="store_true",
-                         help="Remove triples which can not be reached "
-                              "by a traversal from the main vocabulary graph.")
-        group.add_option('--no-cleanup-unreachable', action="store_false",
-                         dest='cleanup_unreachable',
-                         help="Don't remove triples which can not be reached "
-                              "by a traversal from the main vocabulary graph.")
-        parser.add_option_group(group)
-
-        return parser
-
-
-    def expand_curielike(self, namespaces, curie):
-        """Expand a CURIE (or a CURIE-like string with a period instead of colon
-        as separator) into URIRef. If the provided curie is not a CURIE, return it
-        unchanged."""
-
-        if curie == '':
-            return None
-        if sys.version < '3':  # Python 2 ConfigParser reads raw byte strings
-            curie = curie.decode('UTF-8')  # ...make those into Unicode objects
-
-        if curie.startswith('[') and curie.endswith(']'):
-            # decode SafeCURIE
-            curie = curie[1:-1]
-
-        if ':' in curie:
-            ns, localpart = curie.split(':', 1)
-        elif '.' in curie:
-            ns, localpart = curie.split('.', 1)
-        else:
-            return curie
-
-        if ns in namespaces:
-            return URIRef(namespaces[ns] + localpart)
-        else:
-            logging.warning("Unknown namespace prefix %s", ns)
-            return URIRef(curie)
-
-
-    def expand_mapping_target(self, namespaces, val):
-        """Expand a mapping target, expressed as a comma-separated list of
-        CURIE-like strings potentially prefixed with ^ to express inverse
-        properties, into a list of (uri, inverse) tuples, where uri is a URIRef
-        and inverse is a boolean."""
-
-        vals = [v.strip() for v in val.split(',')]
-        ret = []
-        for v in vals:
-            inverse = False
-            if v.startswith('^'):
-                inverse = True
-                v = v[1:]
-            ret.append((self.expand_curielike(namespaces, v), inverse))
-        return ret
-
-
-    def main(self):
-        """Read command line parameters and make a transform based on them."""
-
-        namespaces = DEFAULT_NAMESPACES
-        typemap = {}
-        literalmap = {}
-        relationmap = {}
-        defaults = DEFAULT_OPTIONS
-        options, remainingArgs = self.get_option_parser(defaults).parse_args()
-
-        if options.config is not None:
-            # read the supplied configuration file
-            cfgparser = configparser.SafeConfigParser()
-            # force case-sensitive handling of option names
-            cfgparser.optionxform = str
-            cfgparser.read(options.config)
-
-            # parse namespaces from configuration file
-            for prefix, uri in cfgparser.items('namespaces'):
-                namespaces[prefix] = URIRef(uri)
-
-            # parse types from configuration file
-            for key, val in cfgparser.items('types'):
-                typemap[self.expand_curielike(namespaces, key)] = \
-                    self.expand_mapping_target(namespaces, val)
-
-            # parse literals from configuration file
-            for key, val in cfgparser.items('literals'):
-                literalmap[self.expand_curielike(namespaces, key)] = \
-                    self.expand_mapping_target(namespaces, val)
-
-            # parse relations from configuration file
-            for key, val in cfgparser.items('relations'):
-                relationmap[self.expand_curielike(namespaces, key)] = \
-                    self.expand_mapping_target(namespaces, val)
-
-            # parse options from configuration file
-            for opt, val in cfgparser.items('options'):
-                if opt not in defaults:
-                    logging.warning(
-                        'Unknown option in configuration file: %s (ignored)', opt)
-                    continue
-                if defaults[opt] in (True, False):  # is a Boolean option
-                    defaults[opt] = cfgparser.getboolean('options', opt)
-                else:
-                    defaults[opt] = val
-
-            # re-initialize and re-run OptionParser using defaults read from
-            # configuration file
-            options, remainingArgs = self.get_option_parser(defaults).parse_args()
-
-        if remainingArgs:
-            inputfiles = remainingArgs
-        else:
-            inputfiles = ['-']
-
-        self.skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options)
-
-
-def main():
-    skosify = Skosify()
-    skosify.main()
-
-
-if __name__ == '__main__':
-    main()
+        return voc

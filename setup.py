@@ -1,6 +1,6 @@
 #!/usr/bin/env python
+# encoding=utf-8
 from __future__ import print_function
-
 import os
 import sys
 
@@ -10,13 +10,11 @@ except ImportError:
     print("This package requires 'setuptools' to be installed.")
     sys.exit(1)
 
-requirements = ['rdflib']
-
 here = os.path.abspath(os.path.dirname(__file__))
-README = open(os.path.join(here, 'README.txt')).read()
+README = open(os.path.join(here, 'README.rst')).read()
 
 setup(name='skosify',
-      version='1.0.0',
+      version='1.0.0',  # Use bumpversion to update
       description='SKOS converter for RDFS/OWL/SKOS vocabularies.',
       long_description=README,
       classifiers=[
@@ -26,12 +24,14 @@ setup(name='skosify',
           'Programming Language :: Python :: 3.2',
           'Programming Language :: Python :: 3.3'
       ],
+      keywords='rdf skos',
       author='Osma Suominen',
       author_email='osma.suominen@tkk.fi',
-      url='https://code.google.com/p/skosify/',
+      url='https://github.com/NatLibFi/Skosify',
       license='MIT',
-      install_requires=requirements,
+      install_requires=['rdflib'],
+      setup_requires=['rdflib', 'pytest-runner>=2.9'],
+      tests_require=['pytest', 'pytest-pep8', 'pytest-cov'],
       packages=['skosify'],
-      entry_points = {'console_scripts': ['skosify=skosify.skosify:main',
-                                          'sparqldump=skosify.sparqldump:main']}
+      entry_points={'console_scripts': ['skosify=skosify.cli:main']}
       )

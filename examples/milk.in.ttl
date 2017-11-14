@@ -1,0 +1,15 @@
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix ex: <http://example.org/> .
+
+ex:scheme a skos:ConceptScheme .
+
+ex:animal a skos:Concept ;
+    skos:prefLabel "animal"@en .
+
+ex:mammal a skos:Concept ;
+    skos:prefLabel "mammal"@en ;
+    skos:broader ex:animal .
+
+ex:milk a skos:Concept ;
+    skos:prefLabel "milk"@en ;
+    skos:related ex:mammal .
