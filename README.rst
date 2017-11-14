@@ -1,3 +1,8 @@
+.. image:: https://travis-ci.org/NatLibFi/Skosify.svg?branch=master
+    :target: https://travis-ci.org/NatLibFi/Skosify
+.. image:: https://codecov.io/gh/NatLibFi/Skosify/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/NatLibFi/Skosify
+
 Python script for converting to `SKOS <http://www.w3.org/2004/02/skos/>`_.
 
 This program accepts a thesaurus-like vocabulary expressed as RDFS, OWL or
