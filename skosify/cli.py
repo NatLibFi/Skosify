@@ -3,7 +3,7 @@
 
 from __future__ import print_function
 
-from .skosify import Skosify
+from .skosify import Skosify, DEFAULT_NAMESPACES, DEFAULT_OPTIONS
 
 import optparse
 import logging
@@ -15,46 +15,6 @@ try:
     import configparser
 except ImportError:
     import ConfigParser as configparser
-
-
-# default values for config file / command line options
-DEFAULT_OPTIONS = {
-    'output': '-',
-    'log': None,
-    'from_format': None,
-    'to_format': None,
-    'mark_top_concepts': True,
-    'narrower': True,
-    'transitive': False,
-    'enrich_mappings': True,
-    'aggregates': False,
-    'keep_related': False,
-    'break_cycles': False,
-    'eliminate_redundancy': False,
-    'cleanup_classes': False,
-    'cleanup_properties': False,
-    'cleanup_unreachable': False,
-    'namespace': None,
-    'label': None,
-    'set_modified': False,
-    'default_language': None,
-    'preflabel_policy': 'shortest',
-    'debug': False,
-    'infer': False,
-    'update_query': None,
-    'construct_query': None,
-}
-
-# default namespaces to register in the graph
-DEFAULT_NAMESPACES = {
-    'rdf': RDF,
-    'rdfs': RDFS,
-    'owl': Namespace("http://www.w3.org/2002/07/owl#"),
-    'skos': Namespace("http://www.w3.org/2004/02/skos/core#"),
-    'dc': Namespace("http://purl.org/dc/elements/1.1/"),
-    'dct': Namespace("http://purl.org/dc/terms/"),
-    'xsd': Namespace("http://www.w3.org/2001/XMLSchema#"),
-}
 
 
 def get_option_parser(defaults):
@@ -292,9 +252,27 @@ def main():
     typemap = {}
     literalmap = {}
     relationmap = {}
+
     defaults = DEFAULT_OPTIONS
+    defaults['to_format'] = None
+    defaults['output'] = '-'
+    defaults['log'] = None
+    defaults['debug'] = False
+
     options, remainingArgs = get_option_parser(defaults).parse_args()
 
+    # configure logging
+    logformat = '%(levelname)s: %(message)s'
+    loglevel = logging.INFO
+    if options.debug:
+        loglevel = logging.DEBUG
+    if options.log:
+        logging.basicConfig(filename=options.log,
+                            format=logformat, level=loglevel)
+    else:  # logging messages go into stderr by default
+        logging.basicConfig(format=logformat, level=loglevel)
+
+    # read config file
     if options.config is not None:
         # read the supplied configuration file
         cfgparser = configparser.SafeConfigParser()

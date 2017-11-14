@@ -35,6 +35,41 @@ DC = Namespace("http://purl.org/dc/elements/1.1/")
 DCT = Namespace("http://purl.org/dc/terms/")
 XSD = Namespace("http://www.w3.org/2001/XMLSchema#")
 
+# default namespaces to register in the graph
+DEFAULT_NAMESPACES = {
+    'rdf': RDF,
+    'rdfs': RDFS,
+    'owl': Namespace("http://www.w3.org/2002/07/owl#"),
+    'skos': Namespace("http://www.w3.org/2004/02/skos/core#"),
+    'dc': Namespace("http://purl.org/dc/elements/1.1/"),
+    'dct': Namespace("http://purl.org/dc/terms/"),
+    'xsd': Namespace("http://www.w3.org/2001/XMLSchema#"),
+}
+
+# default values for config file / command line options
+DEFAULT_OPTIONS = {
+    'from_format': None,
+    'mark_top_concepts': True,
+    'narrower': True,
+    'transitive': False,
+    'enrich_mappings': True,
+    'aggregates': False,
+    'keep_related': False,
+    'break_cycles': False,
+    'eliminate_redundancy': False,
+    'cleanup_classes': False,
+    'cleanup_properties': False,
+    'cleanup_unreachable': False,
+    'namespace': None,
+    'label': None,
+    'set_modified': False,
+    'default_language': None,
+    'preflabel_policy': 'shortest',
+    'infer': False,
+    'update_query': None,
+    'construct_query': None,
+}
+
 
 class Skosify(object):
 
@@ -1053,16 +1088,9 @@ class Skosify(object):
 
     def skosify(self, inputfiles, namespaces, typemap, literalmap, relationmap, options):
 
-        # configure logging
-        logformat = '%(levelname)s: %(message)s'
-        loglevel = logging.INFO
-        if options.debug:
-            loglevel = logging.DEBUG
-        if options.log:
-            logging.basicConfig(filename=options.log,
-                                format=logformat, level=loglevel)
-        else:  # logging messages go into stderr by default
-            logging.basicConfig(format=logformat, level=loglevel)
+        # setup options
+        if namespaces is None:
+            namespaces = DEFAULT_NAMESPACES
 
         logging.debug("Skosify starting. $Revision$")
         starttime = time.time()
