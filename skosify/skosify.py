@@ -38,11 +38,9 @@ XSD = Namespace("http://www.w3.org/2001/XMLSchema#")
 
 class Skosify(object):
 
-
     def localname(self, uri):
         """Determine the local name (after namespace) of the given URI."""
         return uri.split('/')[-1].split('#')[-1]
-
 
     def mapping_get(self, uri, mapping):
         """Look up the URI in the given mapping and return the result.
@@ -68,7 +66,6 @@ class Skosify(object):
                 return v
         raise KeyError(uri)
 
-
     def mapping_match(self, uri, mapping):
         """Determine whether the given URI matches one of the given mappings.
 
@@ -80,7 +77,6 @@ class Skosify(object):
             return True
         except KeyError:
             return False
-
 
     def in_general_ns(self, uri):
         """Return True iff the URI is in a well-known general RDF namespace.
@@ -98,7 +94,6 @@ class Skosify(object):
                 return True
         return False
 
-
     def replace_subject(self, rdf, fromuri, touri):
         """Replace occurrences of fromuri as subject with touri in given model.
 
@@ -115,7 +110,6 @@ class Skosify(object):
                     touri = [touri]
                 for uri in touri:
                     rdf.add((uri, p, o))
-
 
     def replace_predicate(self, rdf, fromuri, touri, subjecttypes=None, inverse=False):
         """Replace occurrences of fromuri as predicate with touri in given model.
@@ -154,7 +148,6 @@ class Skosify(object):
                     else:
                         rdf.add((s, uri, o))
 
-
     def replace_object(self, rdf, fromuri, touri, predicate=None):
         """Replace all occurrences of fromuri as object with touri in the given
         model.
@@ -176,7 +169,6 @@ class Skosify(object):
                 for uri in touri:
                     rdf.add((s, p, uri))
 
-
     def replace_uri(self, rdf, fromuri, touri):
         """Replace all occurrences of fromuri with touri in the given model.
 
@@ -188,18 +180,15 @@ class Skosify(object):
         self.replace_predicate(rdf, fromuri, touri)
         self.replace_object(rdf, fromuri, touri)
 
-
     def delete_uri(self, rdf, uri):
         """Delete all occurrences of uri in the given model."""
         self.replace_uri(rdf, uri, None)
-
 
     def find_prop_overlap(self, rdf, prop1, prop2):
         """Generate (subject,object) pairs connected by both prop1 and prop2."""
         for s, o in sorted(rdf.subject_objects(prop1)):
             if (s, prop2, o) in rdf:
                 yield (s, o)
-
 
     def read_input(self, filenames, infmt):
         """Read the given RDF file(s) and return an rdflib Graph object."""
@@ -233,11 +222,9 @@ class Skosify(object):
 
         return rdf
 
-
     def setup_namespaces(self, rdf, namespaces):
         for prefix, uri in namespaces.items():
             rdf.namespace_manager.bind(prefix, uri)
-
 
     def get_concept_scheme(self, rdf):
         """Return a skos:ConceptScheme contained in the model.
@@ -264,7 +251,6 @@ class Skosify(object):
             cs = None
 
         return cs
-
 
     def detect_namespace(self, rdf):
         """Try to automatically detect the URI namespace of the vocabulary.
@@ -293,7 +279,6 @@ class Skosify(object):
             "Namespace auto-detected to '%s' "
             "- you can override this with the --namespace option.", ns)
         return ns
-
 
     def create_concept_scheme(self, rdf, ns, lname=''):
         """Create a skos:ConceptScheme in the model and return it."""
@@ -335,7 +320,8 @@ class Skosify(object):
                 rdf.remove((ont, OWL.imports, o))
             # remove protege specific properties
             for p, o in rdf.predicate_objects(ont):
-                prot = URIRef('http://protege.stanford.edu/plugins/owl/protege#')
+                prot = URIRef(
+                    'http://protege.stanford.edu/plugins/owl/protege#')
                 if p.startswith(prot):
                     rdf.remove((ont, p, o))
             # move remaining properties (dc:title etc.) of the owl:Ontology into
@@ -348,7 +334,7 @@ class Skosify(object):
         """Initialize a concept scheme: Optionally add a label if the concept
         scheme doesn't have a label, and optionally add a dct:modified
         timestamp."""
-        
+
         # check whether the concept scheme is unlabeled, and label it if possible
         labels = list(rdf.objects(cs, RDFS.label)) + \
             list(rdf.objects(cs, SKOS.prefLabel))
@@ -362,7 +348,7 @@ class Skosify(object):
                     "Unlabeled concept scheme detected. Setting label to '%s'" %
                     label)
                 rdf.add((cs, RDFS.label, Literal(label, language)))
-        
+
         if set_modified:
             curdate = datetime.datetime.utcnow().replace(microsecond=0).isoformat() + 'Z'
             rdf.remove((cs, DCT.modified, None))
@@ -370,23 +356,23 @@ class Skosify(object):
 
     def transform_sparql_update(self, rdf, update_query):
         """Perform a SPARQL Update transformation on the RDF data."""
-        
+
         logging.debug("performing SPARQL Update transformation")
-        
-        if update_query[0] == '@': # actual query should be read from file
+
+        if update_query[0] == '@':  # actual query should be read from file
             update_query = file(update_query[1:]).read()
-        
+
         logging.debug("update query: %s", update_query)
         rdf.update(update_query)
 
     def transform_sparql_construct(self, rdf, construct_query):
         """Perform a SPARQL CONSTRUCT query on the RDF data and return a new graph."""
-        
+
         logging.debug("performing SPARQL CONSTRUCT transformation")
-        
-        if construct_query[0] == '@': # actual query should be read from file
+
+        if construct_query[0] == '@':  # actual query should be read from file
             construct_query = file(construct_query[1:]).read()
-        
+
         logging.debug("CONSTRUCT query: %s", construct_query)
 
         newgraph = Graph()
@@ -416,7 +402,6 @@ class Skosify(object):
                 for uc in ucs:
                     rdf.add((res, RDF.type, uc))
 
-
     def infer_properties(self, rdf):
         """Perform RDFS subproperty inference.
 
@@ -437,7 +422,6 @@ class Skosify(object):
             for s, o in rdf.subject_objects(p):
                 for sp in sps:
                     rdf.add((s, sp, o))
-
 
     def transform_concepts(self, rdf, typemap):
         """Transform Concepts into new types, as defined by the config file."""
@@ -463,11 +447,11 @@ class Skosify(object):
             else:
                 logging.info("Don't know what to do with type %s", t)
 
-
     def transform_literals(self, rdf, literalmap):
         """Transform literal properties of Concepts, as defined by config file."""
 
-        affected_types = (SKOS.Concept, SKOS.Collection, SKOSEXT.DeprecatedConcept)
+        affected_types = (SKOS.Concept, SKOS.Collection,
+                          SKOSEXT.DeprecatedConcept)
 
         props = set()
         for t in affected_types:
@@ -482,15 +466,16 @@ class Skosify(object):
                 newval = self.mapping_get(p, literalmap)
                 newuris = [v[0] for v in newval]
                 logging.debug("transform literal %s -> %s", p, str(newuris))
-                self.replace_predicate(rdf, p, newuris, subjecttypes=affected_types)
+                self.replace_predicate(
+                    rdf, p, newuris, subjecttypes=affected_types)
             else:
                 logging.info("Don't know what to do with literal %s", p)
-
 
     def transform_relations(self, rdf, relationmap):
         """Transform YSO-style concept relations into SKOS equivalents."""
 
-        affected_types = (SKOS.Concept, SKOS.Collection, SKOSEXT.DeprecatedConcept)
+        affected_types = (SKOS.Concept, SKOS.Collection,
+                          SKOSEXT.DeprecatedConcept)
 
         props = set()
         for t in affected_types:
@@ -504,10 +489,10 @@ class Skosify(object):
             if self.mapping_match(p, relationmap):
                 newval = self.mapping_get(p, relationmap)
                 logging.debug("transform relation %s -> %s", p, str(newval))
-                self.replace_predicate(rdf, p, newval, subjecttypes=affected_types)
+                self.replace_predicate(
+                    rdf, p, newval, subjecttypes=affected_types)
             else:
                 logging.info("Don't know what to do with relation %s", p)
-
 
     def transform_labels(self, rdf, defaultlanguage):
         # fix labels and documentary notes with extra whitespace
@@ -569,7 +554,6 @@ class Skosify(object):
                 # prefLabel found, make it an altLabel instead
                 rdf.add((conc, SKOS.altLabel, label))
 
-
     def transform_collections(self, rdf):
         for coll in sorted(rdf.subjects(RDF.type, SKOS.Collection)):
             for prop in (SKOS.broader, SKOSEXT.broaderGeneric):
@@ -609,7 +593,6 @@ class Skosify(object):
                         self.localname(relProp), s, coll)
                     rdf.remove((s, relProp, coll))
 
-
     def transform_aggregate_concepts(self, rdf, cs, relationmap, aggregates):
         """Transform YSO-style AggregateConcepts into skos:Concepts within their
            own skos:ConceptScheme, linked to the regular concepts with
@@ -647,7 +630,6 @@ class Skosify(object):
             for conc in aggregate_concepts:
                 rdf.add((conc, SKOS.inScheme, acs))
 
-
     def transform_deprecated_concepts(self, rdf, cs):
         """Transform deprecated concepts so they are in their own concept
         scheme."""
@@ -661,11 +643,11 @@ class Skosify(object):
 
         if len(deprecated_concepts) > 0:
             ns = cs.replace(self.localname(cs), '')
-            dcs = self.create_concept_scheme(rdf, ns, 'deprecatedconceptscheme')
+            dcs = self.create_concept_scheme(
+                rdf, ns, 'deprecatedconceptscheme')
             logging.debug("creating deprecated concept scheme %s", dcs)
             for conc in deprecated_concepts:
                 rdf.add((conc, SKOS.inScheme, dcs))
-
 
     def enrich_relations(self, rdf, enrich_mappings, use_narrower, use_transitive):
         """Enrich the SKOS relations according to SKOS semantics, including
@@ -760,7 +742,6 @@ class Skosify(object):
         for s, o in rdf.subject_objects(SKOS.topConceptOf):
             rdf.add((s, SKOS.inScheme, o))
 
-
     def setup_top_concepts(self, rdf, mark_top_concepts):
         """Determine the top concepts of each concept scheme and mark them using
         hasTopConcept/topConceptOf."""
@@ -786,7 +767,6 @@ class Skosify(object):
                                 "of scheme %s, as mark_top_concepts is disabled",
                                 conc, cs)
 
-
     def setup_concept_scheme(self, rdf, defaultcs):
         """Make sure all concepts have an inScheme property, using the given
         default concept scheme if necessary."""
@@ -795,7 +775,6 @@ class Skosify(object):
             cs = rdf.value(conc, SKOS.inScheme, None, any=True)
             if cs is None:  # need to set inScheme
                 rdf.add((conc, SKOS.inScheme, defaultcs))
-
 
     def cleanup_classes(self, rdf):
         """Remove unnecessary class definitions: definitions of SKOS classes or
@@ -830,7 +809,6 @@ class Skosify(object):
                     logging.debug("removing unused class definition: %s", cl)
                     self.replace_subject(rdf, cl, None)
 
-
     def cleanup_properties(self, rdf):
         """Remove unnecessary property definitions.
 
@@ -841,7 +819,8 @@ class Skosify(object):
                   OWL.InverseFunctionalProperty, OWL.FunctionalProperty):
             for prop in rdf.subjects(RDF.type, t):
                 if prop.startswith(SKOS):
-                    logging.debug("removing SKOS property definition: %s", prop)
+                    logging.debug(
+                        "removing SKOS property definition: %s", prop)
                     self.replace_subject(rdf, prop, None)
                     continue
                 if prop.startswith(DC):
@@ -855,7 +834,6 @@ class Skosify(object):
 
                 logging.debug("removing unused property definition: %s", prop)
                 self.replace_subject(rdf, prop, None)
-
 
     def find_reachable(self, rdf, res):
         """Return the set of reachable resources starting from the given resource,
@@ -904,7 +882,6 @@ class Skosify(object):
 
         return seen
 
-
     def cleanup_unreachable(self, rdf):
         """Remove triples which cannot be reached from the concepts by graph
         traversal."""
@@ -920,7 +897,6 @@ class Skosify(object):
 
         for subj in nonreachable:
             self.delete_uri(rdf, subj)
-
 
     def check_labels(self, rdf, preflabel_policy):
         # check that resources have only one prefLabel per language
@@ -980,12 +956,12 @@ class Skosify(object):
                 res, label, label.language)
             rdf.remove((res, SKOS.hiddenLabel, label))
 
-
     def check_hierarchy_visit(self, rdf, node, parent, break_cycles, status):
         if status.get(node) is None:
             status[node] = 1  # entered
             for child in sorted(rdf.subjects(SKOS.broader, node)):
-                self.check_hierarchy_visit(rdf, child, node, break_cycles, status)
+                self.check_hierarchy_visit(
+                    rdf, child, node, break_cycles, status)
             status[node] = 2  # set this node as completed
         elif status.get(node) == 1:  # has been entered but not yet done
             if break_cycles:
@@ -1005,7 +981,6 @@ class Skosify(object):
         elif status.get(node) == 2:  # is completed already
             pass
 
-
     def check_hierarchy(self, rdf, break_cycles, keep_related, mark_top_concepts,
                         eliminate_redundancy):
         # check for cycles in the skos:broader hierarchy
@@ -1015,14 +990,16 @@ class Skosify(object):
         top_concepts = sorted(rdf.subject_objects(SKOS.hasTopConcept))
         status = {}
         for cs, root in top_concepts:
-            self.check_hierarchy_visit(rdf, root, None, break_cycles, status=status)
+            self.check_hierarchy_visit(
+                rdf, root, None, break_cycles, status=status)
         # double check that all concepts were actually visited in the search,
         # and visit remaining ones if necessary
         recheck_top_concepts = False
         for conc in sorted(rdf.subjects(RDF.type, SKOS.Concept)):
             if conc not in status:
                 recheck_top_concepts = True
-                self.check_hierarchy_visit(rdf, conc, None, break_cycles, status=status)
+                self.check_hierarchy_visit(
+                    rdf, conc, None, break_cycles, status=status)
         if recheck_top_concepts:
             logging.info(
                 "Some concepts not reached in initial cycle detection. "
@@ -1074,7 +1051,6 @@ class Skosify(object):
         endtime = time.time()
         logging.debug("check_hierarchy took %f seconds", (endtime - starttime))
 
-
     def skosify(self, inputfiles, namespaces, typemap, literalmap, relationmap, options):
 
         # configure logging
@@ -1124,17 +1100,18 @@ class Skosify(object):
         if not cs:
             cs = self.create_concept_scheme(voc, options.namespace)
         self.initialize_concept_scheme(voc, cs,
-                                  label=options.label,
-                                  language=options.default_language,
-                                  set_modified=options.set_modified)
+                                       label=options.label,
+                                       language=options.default_language,
+                                       set_modified=options.set_modified)
 
-        self.transform_aggregate_concepts(voc, cs, relationmap, options.aggregates)
+        self.transform_aggregate_concepts(
+            voc, cs, relationmap, options.aggregates)
         self.transform_deprecated_concepts(voc, cs)
 
         logging.debug("Phase 5: Performing SKOS enrichments")
         # enrichments: broader <-> narrower, related <-> related
         self.enrich_relations(voc, options.enrich_mappings,
-                         options.narrower, options.transitive)
+                              options.narrower, options.transitive)
 
         logging.debug("Phase 6: Cleaning up")
         # clean up unused/unnecessary class/property definitions and unreachable

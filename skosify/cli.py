@@ -56,6 +56,7 @@ DEFAULT_NAMESPACES = {
     'xsd': Namespace("http://www.w3.org/2001/XMLSchema#"),
 }
 
+
 def get_option_parser(defaults):
     """Create and return an OptionParser with the given defaults."""
     # based on recipe from:
@@ -79,31 +80,30 @@ def get_option_parser(defaults):
     parser.add_option('-O', '--log', type='string',
                       help='Log file name. Default is to use standard error.')
 
-
     group = optparse.OptionGroup(parser, "Input and Output Options")
     group.add_option('-f', '--from-format', type='string',
-                      help='Input format. '
+                     help='Input format. '
                            'Default is to detect format '
                            'based on file extension. '
                            'Possible values: xml, n3, turtle, nt...')
     group.add_option('-F', '--to-format', type='string',
-                      help='Output format. '
+                     help='Output format. '
                            'Default is to detect format '
                            'based on file extension. '
                            'Possible values: xml, n3, turtle, nt...')
     group.add_option('--update-query', type='string',
-                      help='SPARQL update query. '
-                           'This query is executed against the input '
-                           'data before processing it. '
-                           'The value can be either the actual query, '
-                           'or "@filename".')
+                     help='SPARQL update query. '
+                     'This query is executed against the input '
+                     'data before processing it. '
+                     'The value can be either the actual query, '
+                     'or "@filename".')
     group.add_option('--construct-query', type='string',
-                      help='SPARQL CONSTRUCT query. '
-                           'This query is executed against the input '
-                           'data and the result graph is used as the '
-                           'actual input. '
-                           'The value can be either the actual query, '
-                           'or "@filename".')
+                     help='SPARQL CONSTRUCT query. '
+                     'This query is executed against the input '
+                     'data and the result graph is used as the '
+                     'actual input. '
+                     'The value can be either the actual query, '
+                     'or "@filename".')
     group.add_option('-I', '--infer', action="store_true",
                      help='Perform RDFS subclass/subproperty inference '
                           'before transforming input.')
@@ -341,7 +341,8 @@ def main():
     else:
         inputfiles = ['-']
 
-    voc = skosify.skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options)
+    voc = skosify.skosify(inputfiles, namespaces, typemap,
+                          literalmap, relationmap, options)
 
     write_rdf(voc, options.output, options.to_format)
 
