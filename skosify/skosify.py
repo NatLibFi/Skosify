@@ -1075,27 +1075,6 @@ class Skosify(object):
         logging.debug("check_hierarchy took %f seconds", (endtime - starttime))
 
 
-    def write_output(self, rdf, filename, fmt):
-        """Serialize the RDF output to the given file (or - for stdout)."""
-        if filename == '-':
-            out = sys.stdout
-        else:
-            out = open(filename, 'wb')
-
-        if not fmt:
-            # determine output format
-            fmt = 'xml'  # default
-            if filename.endswith('n3'):
-                fmt = 'n3'
-            if filename.endswith('nt'):
-                fmt = 'nt'
-            if filename.endswith('ttl'):
-                fmt = 'turtle'
-
-        logging.debug("Writing output file %s (format: %s)", filename, fmt)
-        rdf.serialize(destination=out, format=fmt)
-
-
     def skosify(self, inputfiles, namespaces, typemap, literalmap, relationmap, options):
 
         # configure logging
@@ -1184,19 +1163,11 @@ class Skosify(object):
 
         processtime = time.time()
 
-        logging.debug("Phase 10: Writing output")
-
-        self.write_output(voc, options.output, options.to_format)
-        endtime = time.time()
-
         logging.debug("reading input file took  %d seconds",
                       (inputtime - starttime))
         logging.debug("processing took          %d seconds",
                       (processtime - inputtime))
-        logging.debug("writing output file took %d seconds",
-                      (endtime - processtime))
-        logging.debug("total time taken:        %d seconds", (endtime - starttime))
-        logging.debug("Finished Skosify run")
 
+        logging.debug("Phase 10: Writing output")
 
-
+        return voc

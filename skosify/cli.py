@@ -6,6 +6,7 @@ from __future__ import print_function
 from .skosify import Skosify
 
 import optparse
+import logging
 import sys
 
 from rdflib import URIRef, Namespace, RDF, RDFS
@@ -262,6 +263,25 @@ def expand_mapping_target(namespaces, val):
     return ret
 
 
+def write_rdf(rdf, filename, fmt):
+    if filename == '-':
+        out = sys.stdout
+    else:
+        out = open(filename, 'wb')
+
+    if not fmt:
+        # determine output format
+        fmt = 'xml'  # default
+        if filename.endswith('n3'):
+            fmt = 'n3'
+        if filename.endswith('nt'):
+            fmt = 'nt'
+        if filename.endswith('ttl'):
+            fmt = 'turtle'
+
+    logging.debug("Writing output file %s (format: %s)", filename, fmt)
+    rdf.serialize(destination=out, format=fmt)
+
 
 def main():
     """Read command line parameters and make a transform based on them."""
@@ -321,7 +341,9 @@ def main():
     else:
         inputfiles = ['-']
 
-    skosify.skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options)
+    voc = skosify.skosify(inputfiles, namespaces, typemap, literalmap, relationmap, options)
+
+    write_rdf(voc, options.output, options.to_format)
 
 
 if __name__ == '__main__':
