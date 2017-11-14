@@ -1,2 +1,1 @@
-from __future__ import absolute_import
-from .skosify import Skosify
+__version__ = '1.0.0'  # Use bumpversion to update
