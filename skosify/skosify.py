@@ -14,18 +14,8 @@ import time
 import logging
 import datetime
 
-from rdflib import URIRef, BNode, Literal, Namespace, RDF, RDFS
-
-try:
-    # rdflib 2.4.x simple Graph
-    from rdflib.Graph import Graph
-    RDFNS = RDF.RDFNS
-    RDFSNS = RDFS.RDFSNS
-except ImportError:
-    # rdflib 3.0.0 Graph
-    from rdflib import Graph
-    RDFNS = RDF.uri
-    RDFSNS = RDFS.uri
+from rdflib import Graph, URIRef, BNode, Literal, Namespace, RDF, RDFS
+from .io import read_rdf
 
 # namespace defs
 SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
@@ -117,12 +107,8 @@ class Skosify(object):
         """Return True iff the URI is in a well-known general RDF namespace.
 
         URI namespaces considered well-known are RDF, RDFS, OWL, SKOS and DC."""
-        try:  # rdflib 3.0.0
-            RDFuri = RDF.uri
-            RDFSuri = RDFS.uri
-        except AttributeError:  # rdflib 2.4.x
-            RDFuri = RDF.RDFNS
-            RDFSuri = RDFS.RDFSNS
+        RDFuri = RDF.uri
+        RDFSuri = RDFS.uri
 
         for ns in (RDFuri, RDFSuri, OWL, SKOS, DC):
             if uri.startswith(ns):
@@ -224,38 +210,6 @@ class Skosify(object):
         for s, o in sorted(rdf.subject_objects(prop1)):
             if (s, prop2, o) in rdf:
                 yield (s, o)
-
-    def read_input(self, filenames, infmt):
-        """Read the given RDF file(s) and return an rdflib Graph object."""
-        rdf = Graph()
-
-        for filename in filenames:
-            if filename == '-':
-                f = sys.stdin
-            else:
-                f = open(filename, 'r')
-
-            if infmt:
-                fmt = infmt
-            else:
-                # determine format based on file extension
-                fmt = 'xml'  # default
-                if filename.endswith('n3'):
-                    fmt = 'n3'
-                if filename.endswith('ttl'):
-                    fmt = 'n3'
-                if filename.endswith('nt'):
-                    fmt = 'nt'
-
-            logging.debug("Parsing input file %s (format: %s)", filename, fmt)
-            try:
-                rdf.parse(f, format=fmt)
-            except:
-                logging.critical("Parsing failed. Exception: %s",
-                                 str(sys.exc_info()[1]))
-                sys.exit(1)
-
-        return rdf
 
     def setup_namespaces(self, rdf, namespaces):
         for prefix, uri in namespaces.items():
@@ -1096,7 +1050,10 @@ class Skosify(object):
         starttime = time.time()
 
         logging.debug("Phase 1: Parsing input files")
-        voc = self.read_input(inputfiles, options.from_format)
+        voc = read_rdf(inputfiles, options.from_format)
+        if voc is None:
+            sys.exit(1)
+
         inputtime = time.time()
 
         logging.debug("Phase 2: Performing inferences")
