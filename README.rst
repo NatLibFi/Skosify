@@ -21,3 +21,12 @@ Usage
 Run ``./skosify.py --help`` for more usage information.
 
 Additional documentation can be found `in the GitHub project wiki <https://github.com/NatLibFi/Skosify/wiki>`_
+
+Additional scripts
+==================
+
+The `scripts` directory contains two additional scripts to be used together with Skosify:
+
+* `skosify.cgi` a web application to use Skosify
+* `sparqldump.py` a command line client to download RDF via a SPARQL endpoint
+
