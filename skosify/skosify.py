@@ -15,7 +15,16 @@ import logging
 import datetime
 
 from rdflib import Graph, URIRef, BNode, Literal, Namespace, RDF, RDFS
-from .io import read_rdf
+from .rdftools import (
+    read_rdf,
+    replace_subject,
+    replace_predicate,
+    replace_object,
+    replace_uri,
+    delete_uri,
+    localname,
+    find_prop_overlap
+)
 
 # namespace defs
 SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
@@ -63,17 +72,13 @@ DEFAULT_OPTIONS = {
 
 class Skosify(object):
 
-    def localname(self, uri):
-        """Determine the local name (after namespace) of the given URI."""
-        return uri.split('/')[-1].split('#')[-1]
-
     def mapping_get(self, uri, mapping):
         """Look up the URI in the given mapping and return the result.
 
         Throws KeyError if no matching mapping was found.
 
         """
-        ln = self.localname(uri)
+        ln = localname(uri)
         # 1. try to match URI keys
         for k, v in mapping.items():
             if k == uri:
@@ -114,106 +119,6 @@ class Skosify(object):
             if uri.startswith(ns):
                 return True
         return False
-
-    def replace_subject(self, rdf, fromuri, touri):
-        """Replace occurrences of fromuri as subject with touri in given model.
-
-        If touri=None, will delete all occurrences of fromuri instead.
-        If touri is a list or tuple of URIRefs, all values will be inserted.
-
-        """
-        if fromuri == touri:
-            return
-        for p, o in rdf.predicate_objects(fromuri):
-            rdf.remove((fromuri, p, o))
-            if touri is not None:
-                if not isinstance(touri, (list, tuple)):
-                    touri = [touri]
-                for uri in touri:
-                    rdf.add((uri, p, o))
-
-    def replace_predicate(self, rdf, fromuri, touri, subjecttypes=None, inverse=False):
-        """Replace occurrences of fromuri as predicate with touri in given model.
-
-        If touri=None, will delete all occurrences of fromuri instead.
-        If touri is a list or tuple of URIRef, all values will be inserted. If
-        touri is a list of (URIRef, boolean) tuples, the boolean value will be
-        used to determine whether an inverse property is created (if True) or
-        not (if False). If a subjecttypes sequence is given, modify only those
-        triples where the subject is one of the provided types.
-
-        """
-
-        if fromuri == touri:
-            return
-        for s, o in rdf.subject_objects(fromuri):
-            if subjecttypes is not None:
-                typeok = False
-                for t in subjecttypes:
-                    if (s, RDF.type, t) in rdf:
-                        typeok = True
-                if not typeok:
-                    continue
-            rdf.remove((s, fromuri, o))
-            if touri is not None:
-                if not isinstance(touri, (list, tuple)):
-                    touri = [touri]
-                for val in touri:
-                    if not isinstance(val, tuple):
-                        val = (val, False)
-                    uri, inverse = val
-                    if uri is None:
-                        continue
-                    if inverse:
-                        rdf.add((o, uri, s))
-                    else:
-                        rdf.add((s, uri, o))
-
-    def replace_object(self, rdf, fromuri, touri, predicate=None):
-        """Replace all occurrences of fromuri as object with touri in the given
-        model.
-
-        If touri=None, will delete all occurrences of fromuri instead.
-        If touri is a list or tuple of URIRef, all values will be inserted.
-        If predicate is given, modify only triples with the given predicate.
-
-        """
-        if fromuri == touri:
-            return
-        for s, p in rdf.subject_predicates(fromuri):
-            if predicate is not None and p != predicate:
-                continue
-            rdf.remove((s, p, fromuri))
-            if touri is not None:
-                if not isinstance(touri, (list, tuple)):
-                    touri = [touri]
-                for uri in touri:
-                    rdf.add((s, p, uri))
-
-    def replace_uri(self, rdf, fromuri, touri):
-        """Replace all occurrences of fromuri with touri in the given model.
-
-        If touri is a list or tuple of URIRef, all values will be inserted.
-        If touri=None, will delete all occurrences of fromuri instead.
-
-        """
-        self.replace_subject(rdf, fromuri, touri)
-        self.replace_predicate(rdf, fromuri, touri)
-        self.replace_object(rdf, fromuri, touri)
-
-    def delete_uri(self, rdf, uri):
-        """Delete all occurrences of uri in the given model."""
-        self.replace_uri(rdf, uri, None)
-
-    def find_prop_overlap(self, rdf, prop1, prop2):
-        """Generate (subject,object) pairs connected by both prop1 and prop2."""
-        for s, o in sorted(rdf.subject_objects(prop1)):
-            if (s, prop2, o) in rdf:
-                yield (s, o)
-
-    def setup_namespaces(self, rdf, namespaces):
-        for prefix, uri in namespaces.items():
-            rdf.namespace_manager.bind(prefix, uri)
 
     def get_concept_scheme(self, rdf):
         """Return a skos:ConceptScheme contained in the model.
@@ -256,7 +161,7 @@ class Skosify(object):
                 "Set namespace using the --namespace option.")
             sys.exit(1)
 
-        ln = self.localname(conc)
+        ln = localname(conc)
         ns = URIRef(conc.replace(ln, ''))
         if ns.strip() == '':
             logging.critical(
@@ -574,12 +479,12 @@ class Skosify(object):
                 for o in sorted(rdf.objects(coll, relProp)):
                     logging.warning(
                         "Removing concept relation %s -> %s from collection %s",
-                        self.localname(relProp), o, coll)
+                        localname(relProp), o, coll)
                     rdf.remove((coll, relProp, o))
                 for s in sorted(rdf.subjects(relProp, coll)):
                     logging.warning(
                         "Removing concept relation %s <- %s from collection %s",
-                        self.localname(relProp), s, coll)
+                        localname(relProp), s, coll)
                     rdf.remove((s, relProp, coll))
 
     def transform_aggregate_concepts(self, rdf, cs, relationmap, aggregates):
@@ -613,7 +518,7 @@ class Skosify(object):
                 self.delete_uri(rdf, conc)
 
         if len(aggregate_concepts) > 0:
-            ns = cs.replace(self.localname(cs), '')
+            ns = cs.replace(localname(cs), '')
             acs = self.create_concept_scheme(rdf, ns, 'aggregateconceptscheme')
             logging.debug("creating aggregate concept scheme %s", acs)
             for conc in aggregate_concepts:
@@ -631,7 +536,7 @@ class Skosify(object):
             deprecated_concepts.append(conc)
 
         if len(deprecated_concepts) > 0:
-            ns = cs.replace(self.localname(cs), '')
+            ns = cs.replace(localname(cs), '')
             dcs = self.create_concept_scheme(
                 rdf, ns, 'deprecatedconceptscheme')
             logging.debug("creating deprecated concept scheme %s", dcs)
@@ -926,19 +831,19 @@ class Skosify(object):
                             rdf.add((res, SKOS.altLabel, label))
 
         # check overlap between disjoint label properties
-        for res, label in self.find_prop_overlap(rdf, SKOS.prefLabel, SKOS.altLabel):
+        for res, label in find_prop_overlap(rdf, SKOS.prefLabel, SKOS.altLabel):
             logging.warning(
                 "Resource %s has '%s'@%s as both prefLabel and altLabel; "
                 "removing altLabel",
                 res, label, label.language)
             rdf.remove((res, SKOS.altLabel, label))
-        for res, label in self.find_prop_overlap(rdf, SKOS.prefLabel, SKOS.hiddenLabel):
+        for res, label in find_prop_overlap(rdf, SKOS.prefLabel, SKOS.hiddenLabel):
             logging.warning(
                 "Resource %s has '%s'@%s as both prefLabel and hiddenLabel; "
                 "removing hiddenLabel",
                 res, label, label.language)
             rdf.remove((res, SKOS.hiddenLabel, label))
-        for res, label in self.find_prop_overlap(rdf, SKOS.altLabel, SKOS.hiddenLabel):
+        for res, label in find_prop_overlap(rdf, SKOS.altLabel, SKOS.hiddenLabel):
             logging.warning(
                 "Resource %s has '%s'@%s as both altLabel and hiddenLabel; "
                 "removing hiddenLabel",
@@ -955,7 +860,7 @@ class Skosify(object):
         elif status.get(node) == 1:  # has been entered but not yet done
             if break_cycles:
                 logging.info("Hierarchy cycle removed at %s -> %s",
-                             self.localname(parent), self.localname(node))
+                             localname(parent), localname(node))
                 rdf.remove((node, SKOS.broader, parent))
                 rdf.remove((node, SKOS.broaderTransitive, parent))
                 rdf.remove((node, SKOSEXT.broaderGeneric, parent))
@@ -966,7 +871,7 @@ class Skosify(object):
                 logging.info(
                     "Hierarchy cycle detected at %s -> %s, "
                     "but not removed because break_cycles is not active",
-                    self.localname(parent), self.localname(node))
+                    localname(parent), localname(node))
         elif status.get(node) == 2:  # is completed already
             pass
 
@@ -1042,16 +947,15 @@ class Skosify(object):
 
     def skosify(self, inputfiles, namespaces, typemap, literalmap, relationmap, options):
 
-        # setup options
-        if namespaces is None:
-            namespaces = DEFAULT_NAMESPACES
-
         logging.debug("Skosify starting. $Revision$")
         starttime = time.time()
 
         logging.debug("Phase 1: Parsing input files")
-        voc = read_rdf(inputfiles, options.from_format)
-        if voc is None:
+        try:
+            voc = read_rdf(inputfiles, options.from_format)
+        except:
+            logging.critical("Parsing failed. Exception: %s",
+                             str(sys.exc_info()[1]))
             sys.exit(1)
 
         inputtime = time.time()
@@ -1066,7 +970,10 @@ class Skosify(object):
             self.infer_properties(voc)
 
         logging.debug("Phase 3: Setting up namespaces")
-        self.setup_namespaces(voc, namespaces)
+        if namespaces is None:
+            namespaces = DEFAULT_NAMESPACES
+        for prefix, uri in namespaces.items():
+            voc.namespace_manager.bind(prefix, uri)
 
         logging.debug("Phase 4: Transforming concepts, literals and relations")
         # transform concepts, literals and concept relations

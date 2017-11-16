@@ -4,7 +4,7 @@
 from __future__ import print_function
 
 from .skosify import Skosify, DEFAULT_NAMESPACES, DEFAULT_OPTIONS
-from .io import write_rdf
+from .rdftools import write_rdf
 
 import optparse
 import logging

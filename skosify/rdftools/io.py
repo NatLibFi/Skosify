@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""RDF reading and writing methods."""
+"""Generic RDF utility methods to parse and serialize RDF."""
 
 import logging
 import sys
@@ -8,7 +8,7 @@ from rdflib import Graph
 
 
 def read_rdf(filenames, infmt):
-    """Read the given RDF file(s) and return an rdflib Graph object or None or error."""
+    """Read the given RDF file(s) and return an rdflib Graph object or raise an Exception."""
     rdf = Graph()
 
     for filename in filenames:
@@ -30,13 +30,7 @@ def read_rdf(filenames, infmt):
                 fmt = 'nt'
 
         logging.debug("Parsing input file %s (format: %s)", filename, fmt)
-        try:
-            rdf.parse(f, format=fmt)
-        except:
-            logging.critical("Parsing failed. Exception: %s",
-                             str(sys.exc_info()[1]))
-            return None
-            sys.exit(1)
+        rdf.parse(f, format=fmt)
 
     return rdf
 
