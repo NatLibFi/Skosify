@@ -6,9 +6,6 @@
 # MIT License
 # see README.rst for more information
 
-# python2 compatibility
-from __future__ import print_function
-
 import sys
 import time
 import logging
@@ -26,6 +23,8 @@ from .rdftools import (
     find_prop_overlap
 )
 
+from .config import Config
+
 # namespace defs
 SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
 SKOSEXT = Namespace("http://purl.org/finnonto/schema/skosext#")
@@ -33,41 +32,6 @@ OWL = Namespace("http://www.w3.org/2002/07/owl#")
 DC = Namespace("http://purl.org/dc/elements/1.1/")
 DCT = Namespace("http://purl.org/dc/terms/")
 XSD = Namespace("http://www.w3.org/2001/XMLSchema#")
-
-# default namespaces to register in the graph
-DEFAULT_NAMESPACES = {
-    'rdf': RDF,
-    'rdfs': RDFS,
-    'owl': Namespace("http://www.w3.org/2002/07/owl#"),
-    'skos': Namespace("http://www.w3.org/2004/02/skos/core#"),
-    'dc': Namespace("http://purl.org/dc/elements/1.1/"),
-    'dct': Namespace("http://purl.org/dc/terms/"),
-    'xsd': Namespace("http://www.w3.org/2001/XMLSchema#"),
-}
-
-# default values for config file / command line options
-DEFAULT_OPTIONS = {
-    'from_format': None,
-    'mark_top_concepts': True,
-    'narrower': True,
-    'transitive': False,
-    'enrich_mappings': True,
-    'aggregates': False,
-    'keep_related': False,
-    'break_cycles': False,
-    'eliminate_redundancy': False,
-    'cleanup_classes': False,
-    'cleanup_properties': False,
-    'cleanup_unreachable': False,
-    'namespace': None,
-    'label': None,
-    'set_modified': False,
-    'default_language': None,
-    'preflabel_policy': 'shortest',
-    'infer': False,
-    'update_query': None,
-    'construct_query': None,
-}
 
 
 class Skosify(object):
@@ -945,14 +909,24 @@ class Skosify(object):
         endtime = time.time()
         logging.debug("check_hierarchy took %f seconds", (endtime - starttime))
 
-    def skosify(self, inputfiles, namespaces, typemap, literalmap, relationmap, options):
+    def skosify(self, *inputfiles, **kwargs):
+
+        config = Config()
+        for key in kwargs:
+            if hasattr(config, key):
+                setattr(config, key, kwargs[key])
+
+        namespaces = config.namespaces
+        typemap = config.types
+        literalmap = config.literals
+        relationmap = config.relations
 
         logging.debug("Skosify starting. $Revision$")
         starttime = time.time()
 
         logging.debug("Phase 1: Parsing input files")
         try:
-            voc = read_rdf(inputfiles, options.from_format)
+            voc = read_rdf(inputfiles, config.from_format)
         except:
             logging.critical("Parsing failed. Exception: %s",
                              str(sys.exc_info()[1]))
@@ -961,17 +935,15 @@ class Skosify(object):
         inputtime = time.time()
 
         logging.debug("Phase 2: Performing inferences")
-        if options.update_query is not None:
-            self.transform_sparql_update(voc, options.update_query)
-        if options.construct_query is not None:
-            voc = self.transform_sparql_construct(voc, options.construct_query)
-        if options.infer:
+        if config.update_query is not None:
+            self.transform_sparql_update(voc, config.update_query)
+        if config.construct_query is not None:
+            voc = self.transform_sparql_construct(voc, config.construct_query)
+        if config.infer:
             self.infer_classes(voc)
             self.infer_properties(voc)
 
         logging.debug("Phase 3: Setting up namespaces")
-        if namespaces is None:
-            namespaces = DEFAULT_NAMESPACES
         for prefix, uri in namespaces.items():
             voc.namespace_manager.bind(prefix, uri)
 
@@ -982,7 +954,7 @@ class Skosify(object):
         self.transform_relations(voc, relationmap)
 
         # special transforms for labels: whitespace, prefLabel vs altLabel
-        self.transform_labels(voc, options.default_language)
+        self.transform_labels(voc, config.default_language)
 
         # special transforms for collections + aggregate and deprecated concepts
         self.transform_collections(voc)
@@ -990,45 +962,45 @@ class Skosify(object):
         # find/create concept scheme
         cs = self.get_concept_scheme(voc)
         if not cs:
-            cs = self.create_concept_scheme(voc, options.namespace)
+            cs = self.create_concept_scheme(voc, config.namespace)
         self.initialize_concept_scheme(voc, cs,
-                                       label=options.label,
-                                       language=options.default_language,
-                                       set_modified=options.set_modified)
+                                       label=config.label,
+                                       language=config.default_language,
+                                       set_modified=config.set_modified)
 
         self.transform_aggregate_concepts(
-            voc, cs, relationmap, options.aggregates)
+            voc, cs, relationmap, config.aggregates)
         self.transform_deprecated_concepts(voc, cs)
 
         logging.debug("Phase 5: Performing SKOS enrichments")
         # enrichments: broader <-> narrower, related <-> related
-        self.enrich_relations(voc, options.enrich_mappings,
-                              options.narrower, options.transitive)
+        self.enrich_relations(voc, config.enrich_mappings,
+                              config.narrower, config.transitive)
 
         logging.debug("Phase 6: Cleaning up")
         # clean up unused/unnecessary class/property definitions and unreachable
         # triples
-        if options.cleanup_properties:
+        if config.cleanup_properties:
             self.cleanup_properties(voc)
-        if options.cleanup_classes:
+        if config.cleanup_classes:
             self.cleanup_classes(voc)
-        if options.cleanup_unreachable:
+        if config.cleanup_unreachable:
             self.cleanup_unreachable(voc)
 
         logging.debug("Phase 7: Setting up concept schemes and top concepts")
         # setup inScheme and hasTopConcept
         self.setup_concept_scheme(voc, cs)
-        self.setup_top_concepts(voc, options.mark_top_concepts)
+        self.setup_top_concepts(voc, config.mark_top_concepts)
 
         logging.debug("Phase 8: Checking concept hierarchy")
         # check hierarchy for cycles
-        self.check_hierarchy(voc, options.break_cycles,
-                             options.keep_related, options.mark_top_concepts,
-                             options.eliminate_redundancy)
+        self.check_hierarchy(voc, config.break_cycles,
+                             config.keep_related, config.mark_top_concepts,
+                             config.eliminate_redundancy)
 
         logging.debug("Phase 9: Checking labels")
         # check for duplicate labels
-        self.check_labels(voc, options.preflabel_policy)
+        self.check_labels(voc, config.preflabel_policy)
 
         processtime = time.time()
 

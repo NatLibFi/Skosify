@@ -3,19 +3,15 @@
 
 from __future__ import print_function
 
-from .skosify import Skosify, DEFAULT_NAMESPACES, DEFAULT_OPTIONS
+from .skosify import Skosify
 from .rdftools import write_rdf
+from .config import Config
 
 import optparse
 import logging
 import sys
 
 from rdflib import URIRef, Namespace, RDF, RDFS
-
-try:
-    import configparser
-except ImportError:
-    import ConfigParser as configparser
 
 
 def get_option_parser(defaults):
@@ -179,70 +175,24 @@ def get_option_parser(defaults):
     return parser
 
 
-def expand_curielike(namespaces, curie):
-    """Expand a CURIE (or a CURIE-like string with a period instead of colon
-    as separator) into URIRef. If the provided curie is not a CURIE, return it
-    unchanged."""
-
-    if curie == '':
-        return None
-    if sys.version < '3':  # Python 2 ConfigParser reads raw byte strings
-        curie = curie.decode('UTF-8')  # ...make those into Unicode objects
-
-    if curie.startswith('[') and curie.endswith(']'):
-        # decode SafeCURIE
-        curie = curie[1:-1]
-
-    if ':' in curie:
-        ns, localpart = curie.split(':', 1)
-    elif '.' in curie:
-        ns, localpart = curie.split('.', 1)
-    else:
-        return curie
-
-    if ns in namespaces:
-        return URIRef(namespaces[ns].term(localpart))
-    else:
-        logging.warning("Unknown namespace prefix %s", ns)
-        return URIRef(curie)
-
-
-def expand_mapping_target(namespaces, val):
-    """Expand a mapping target, expressed as a comma-separated list of
-    CURIE-like strings potentially prefixed with ^ to express inverse
-    properties, into a list of (uri, inverse) tuples, where uri is a URIRef
-    and inverse is a boolean."""
-
-    vals = [v.strip() for v in val.split(',')]
-    ret = []
-    for v in vals:
-        inverse = False
-        if v.startswith('^'):
-            inverse = True
-            v = v[1:]
-        ret.append((expand_curielike(namespaces, v), inverse))
-    return ret
-
-
 def main():
     """Read command line parameters and make a transform based on them."""
 
-    skosify = Skosify()
+    config = Config()
 
-    namespaces = DEFAULT_NAMESPACES
-    typemap = {}
-    literalmap = {}
-    relationmap = {}
-
-    defaults = DEFAULT_OPTIONS
+    # additional options for command line client only
+    defaults = vars(config)
     defaults['to_format'] = None
     defaults['output'] = '-'
     defaults['log'] = None
     defaults['debug'] = False
 
     options, remainingArgs = get_option_parser(defaults).parse_args()
+    for key in vars(options):
+        if hasattr(config, key):
+            setattr(config, key, getattr(options, key))
 
-    # configure logging
+    # configure logging, messages to stderr by default
     logformat = '%(levelname)s: %(message)s'
     loglevel = logging.INFO
     if options.debug:
@@ -250,60 +200,28 @@ def main():
     if options.log:
         logging.basicConfig(filename=options.log,
                             format=logformat, level=loglevel)
-    else:  # logging messages go into stderr by default
+    else:
         logging.basicConfig(format=logformat, level=loglevel)
 
-    # read config file
+    output = options.output
+    to_format = options.to_format
+
+    # read config file as defaults and override from command line arguments
     if options.config is not None:
-        # read the supplied configuration file
-        cfgparser = configparser.SafeConfigParser()
-        # force case-sensitive handling of option names
-        cfgparser.optionxform = str
-        cfgparser.read(options.config)
-
-        # parse namespaces from configuration file
-        for prefix, uri in cfgparser.items('namespaces'):
-            namespaces[prefix] = URIRef(uri)
-
-        # parse types from configuration file
-        for key, val in cfgparser.items('types'):
-            typemap[expand_curielike(namespaces, key)] = \
-                expand_mapping_target(namespaces, val)
-
-        # parse literals from configuration file
-        for key, val in cfgparser.items('literals'):
-            literalmap[expand_curielike(namespaces, key)] = \
-                expand_mapping_target(namespaces, val)
-
-        # parse relations from configuration file
-        for key, val in cfgparser.items('relations'):
-            relationmap[expand_curielike(namespaces, key)] = \
-                expand_mapping_target(namespaces, val)
-
-        # parse options from configuration file
-        for opt, val in cfgparser.items('options'):
-            if opt not in defaults:
-                logging.warning(
-                    'Unknown option in configuration file: %s (ignored)', opt)
-                continue
-            if defaults[opt] in (True, False):  # is a Boolean option
-                defaults[opt] = cfgparser.getboolean('options', opt)
-            else:
-                defaults[opt] = val
-
-        # re-initialize and re-run OptionParser using defaults read from
-        # configuration file
-        options, remainingArgs = get_option_parser(defaults).parse_args()
+        config.read_file(options.config)
+        options, remainingArgs = get_option_parser(config.options).parse_args()
+        for key in vars(options):
+            if hasattr(config, key):
+                setattr(config, key, getattr(options, key))
 
     if remainingArgs:
         inputfiles = remainingArgs
     else:
         inputfiles = ['-']
 
-    voc = skosify.skosify(inputfiles, namespaces, typemap,
-                          literalmap, relationmap, options)
-
-    write_rdf(voc, options.output, options.to_format)
+    skosify = Skosify()
+    voc = skosify.skosify(*inputfiles, **vars(config))
+    write_rdf(voc, output, to_format)
 
 
 if __name__ == '__main__':

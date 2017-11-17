@@ -4,16 +4,8 @@ import pytest
 import glob
 import re
 import os
-import argparse
 from rdflib import Graph
-from skosify.skosify import Skosify, DEFAULT_OPTIONS
-
-"""
-#import os
-#import sys
-#from rdflib.namespace import RDF, SKOS, OWL, DCTERMS, Namespace
-#from rdflib import URIRef, Literal, Graph
-"""
+from skosify.skosify import Skosify
 
 
 def expect_rdf(expect, graph):
@@ -25,11 +17,10 @@ def expect_rdf(expect, graph):
 @pytest.mark.parametrize('infile', glob.glob('examples/*.in.*'))
 def test_example(infile):
     outfile = re.sub('\.in\.([^.]+)$', r'.out.\1', infile)
+    conffile = re.sub('\.in\.[^.]+$', r'.cfg', infile)
 
     skosify = Skosify()
-
-    options = argparse.Namespace(**DEFAULT_OPTIONS)
-    voc = skosify.skosify([infile], None, {}, {}, {}, options)
+    voc = skosify.skosify(infile)
 
     expect = Graph()
     if os.path.isfile(outfile):
