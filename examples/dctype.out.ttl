@@ -1,0 +1,173 @@
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix dcam: <http://purl.org/dc/dcam/> .
+@prefix dcmitype: <http://purl.org/dc/dcmitype/> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+dcmitype:Collection a skos:Concept ;
+    dcam:memberOf dct:DCMIType ;
+    dct:description "A collection is described as a group; its parts may also be separately described."@en-US ;
+    dct:hasVersion <http://dublincore.org/usage/terms/history/#Collection-003> ;
+    dct:issued "2000-07-11" ;
+    dct:modified "2008-01-14" ;
+    rdfs:isDefinedBy dcmitype: ;
+    skos:definition "An aggregation of resources."@en-US ;
+    skos:inScheme dcmitype: ;
+    skos:prefLabel "Collection"@en-US ;
+    skos:topConceptOf dcmitype: .
+
+dcmitype:Dataset a skos:Concept ;
+    dcam:memberOf dct:DCMIType ;
+    dct:description "Examples include lists, tables, and databases.  A dataset may be useful for direct machine processing."@en-US ;
+    dct:hasVersion <http://dublincore.org/usage/terms/history/#Dataset-003> ;
+    dct:issued "2000-07-11" ;
+    dct:modified "2008-01-14" ;
+    rdfs:isDefinedBy dcmitype: ;
+    skos:definition "Data encoded in a defined structure."@en-US ;
+    skos:inScheme dcmitype: ;
+    skos:prefLabel "Dataset"@en-US ;
+    skos:topConceptOf dcmitype: .
+
+dcmitype:Event a skos:Concept ;
+    dcam:memberOf dct:DCMIType ;
+    dct:description "Metadata for an event provides descriptive information that is the basis for discovery of the purpose, location, duration, and responsible agents associated with an event. Examples include an exhibition, webcast, conference, workshop, open day, performance, battle, trial, wedding, tea party, conflagration."@en-US ;
+    dct:hasVersion <http://dublincore.org/usage/terms/history/#Event-003> ;
+    dct:issued "2000-07-11" ;
+    dct:modified "2008-01-14" ;
+    rdfs:isDefinedBy dcmitype: ;
+    skos:definition "A non-persistent, time-based occurrence."@en-US ;
+    skos:inScheme dcmitype: ;
+    skos:prefLabel "Event"@en-US ;
+    skos:topConceptOf dcmitype: .
+
+dcmitype:InteractiveResource a skos:Concept ;
+    dcam:memberOf dct:DCMIType ;
+    dct:description "Examples include forms on Web pages, applets, multimedia learning objects, chat services, or virtual reality environments."@en-US ;
+    dct:hasVersion <http://dublincore.org/usage/terms/history/#InteractiveResource-003> ;
+    dct:issued "2000-07-11" ;
+    dct:modified "2008-01-14" ;
+    rdfs:isDefinedBy dcmitype: ;
+    skos:definition "A resource requiring interaction from the user to be understood, executed, or experienced."@en-US ;
+    skos:inScheme dcmitype: ;
+    skos:prefLabel "Interactive Resource"@en-US ;
+    skos:topConceptOf dcmitype: .
+
+dcmitype:MovingImage a skos:Concept ;
+    dcam:memberOf dct:DCMIType ;
+    dct:description "Examples include animations, movies, television programs, videos, zoetropes, or visual output from a simulation.  Instances of the type Moving Image must also be describable as instances of the broader type Image."@en-US ;
+    dct:hasVersion <http://dublincore.org/usage/terms/history/#MovingImage-003> ;
+    dct:issued "2003-11-18" ;
+    dct:modified "2008-01-14" ;
+    rdfs:isDefinedBy dcmitype: ;
+    skos:broader dcmitype:Image ;
+    skos:definition "A series of visual representations imparting an impression of motion when shown in succession."@en-US ;
+    skos:inScheme dcmitype: ;
+    skos:prefLabel "Moving Image"@en-US .
+
+dcmitype:PhysicalObject a skos:Concept ;
+    dcam:memberOf dct:DCMIType ;
+    dct:description "Note that digital representations of, or surrogates for, these objects should use Image, Text or one of the other types."@en-US ;
+    dct:hasVersion <http://dublincore.org/usage/terms/history/#PhysicalObject-003> ;
+    dct:issued "2002-07-13" ;
+    dct:modified "2008-01-14" ;
+    rdfs:isDefinedBy dcmitype: ;
+    skos:definition "An inanimate, three-dimensional object or substance."@en-US ;
+    skos:inScheme dcmitype: ;
+    skos:prefLabel "Physical Object"@en-US ;
+    skos:topConceptOf dcmitype: .
+
+dcmitype:Service a skos:Concept ;
+    dcam:memberOf dct:DCMIType ;
+    dct:description "Examples include a photocopying service, a banking service, an authentication service, interlibrary loans, a Z39.50 or Web server."@en-US ;
+    dct:hasVersion <http://dublincore.org/usage/terms/history/#Service-003> ;
+    dct:issued "2000-07-11" ;
+    dct:modified "2008-01-14" ;
+    rdfs:isDefinedBy dcmitype: ;
+    skos:definition "A system that provides one or more functions."@en-US ;
+    skos:inScheme dcmitype: ;
+    skos:prefLabel "Service"@en-US ;
+    skos:topConceptOf dcmitype: .
+
+dcmitype:Software a skos:Concept ;
+    dcam:memberOf dct:DCMIType ;
+    dct:description "Examples include a C source file, MS-Windows .exe executable, or Perl script."@en-US ;
+    dct:hasVersion <http://dublincore.org/usage/terms/history/#Software-003> ;
+    dct:issued "2000-07-11" ;
+    dct:modified "2008-01-14" ;
+    rdfs:isDefinedBy dcmitype: ;
+    skos:definition "A computer program in source or compiled form."@en-US ;
+    skos:inScheme dcmitype: ;
+    skos:prefLabel "Software"@en-US ;
+    skos:topConceptOf dcmitype: .
+
+dcmitype:Sound a skos:Concept ;
+    dcam:memberOf dct:DCMIType ;
+    dct:description "Examples include a music playback file format, an audio compact disc, and recorded speech or sounds."@en-US ;
+    dct:hasVersion <http://dublincore.org/usage/terms/history/#Sound-003> ;
+    dct:issued "2000-07-11" ;
+    dct:modified "2008-01-14" ;
+    rdfs:isDefinedBy dcmitype: ;
+    skos:definition "A resource primarily intended to be heard."@en-US ;
+    skos:inScheme dcmitype: ;
+    skos:prefLabel "Sound"@en-US ;
+    skos:topConceptOf dcmitype: .
+
+dcmitype:StillImage a skos:Concept ;
+    dcam:memberOf dct:DCMIType ;
+    dct:description "Examples include paintings, drawings, graphic designs, plans and maps. Recommended best practice is to assign the type Text to images of textual materials. Instances of the type Still Image must also be describable as instances of the broader type Image."@en-US ;
+    dct:hasVersion <http://dublincore.org/usage/terms/history/#StillImage-003> ;
+    dct:issued "2003-11-18" ;
+    dct:modified "2008-01-14" ;
+    rdfs:isDefinedBy dcmitype: ;
+    skos:broader dcmitype:Image ;
+    skos:definition "A static visual representation."@en-US ;
+    skos:inScheme dcmitype: ;
+    skos:prefLabel "Still Image"@en-US .
+
+dcmitype:Text a skos:Concept ;
+    dcam:memberOf dct:DCMIType ;
+    dct:description "Examples include books, letters, dissertations, poems, newspapers, articles, archives of mailing lists. Note that facsimiles or images of texts are still of the genre Text."@en-US ;
+    dct:hasVersion <http://dublincore.org/usage/terms/history/#Text-003> ;
+    dct:issued "2000-07-11" ;
+    dct:modified "2008-01-14" ;
+    rdfs:isDefinedBy dcmitype: ;
+    skos:definition "A resource consisting primarily of words for reading."@en-US ;
+    skos:inScheme dcmitype: ;
+    skos:prefLabel "Text"@en-US ;
+    skos:topConceptOf dcmitype: .
+
+dcmitype:Image a skos:Concept ;
+    dcam:memberOf dct:DCMIType ;
+    dct:description "Examples include images and photographs of physical objects, paintings, prints, drawings, other images and graphics, animations and moving pictures, film, diagrams, maps, musical notation.  Note that Image may include both electronic and physical representations."@en-US ;
+    dct:hasVersion <http://dublincore.org/usage/terms/history/#Image-004> ;
+    dct:issued "2000-07-11" ;
+    dct:modified "2008-01-14" ;
+    rdfs:isDefinedBy dcmitype: ;
+    skos:definition "A visual representation other than text."@en-US ;
+    skos:inScheme dcmitype: ;
+    skos:narrower dcmitype:MovingImage,
+        dcmitype:StillImage ;
+    skos:prefLabel "Image"@en-US ;
+    skos:topConceptOf dcmitype: .
+
+dcmitype: a skos:ConceptScheme ;
+    dct:modified "2010-10-11" ;
+    dct:publisher <http://purl.org/dc/aboutdcmi#DCMI> ;
+    dct:title "DCMI Type Vocabulary"@en-US ;
+    skos:hasTopConcept dcmitype:Collection,
+        dcmitype:Dataset,
+        dcmitype:Event,
+        dcmitype:Image,
+        dcmitype:InteractiveResource,
+        dcmitype:PhysicalObject,
+        dcmitype:Service,
+        dcmitype:Software,
+        dcmitype:Sound,
+        dcmitype:Text .
+

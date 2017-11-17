@@ -184,7 +184,7 @@ class Skosify(object):
                     rdf.remove((ont, p, o))
             # move remaining properties (dc:title etc.) of the owl:Ontology into
             # the skos:ConceptScheme
-            self.replace_uri(rdf, ont, cs)
+            replace_uri(rdf, ont, cs)
 
         return cs
 
@@ -298,10 +298,10 @@ class Skosify(object):
                 logging.debug("transform class %s -> %s", t, str(newuris))
                 if newuris[0] is None:  # delete all instances
                     for inst in rdf.subjects(RDF.type, t):
-                        self.delete_uri(rdf, inst)
-                    self.delete_uri(rdf, t)
+                        delete_uri(rdf, inst)
+                    delete_uri(rdf, t)
                 else:
-                    self.replace_object(rdf, t, newuris, predicate=RDF.type)
+                    replace_object(rdf, t, newuris, predicate=RDF.type)
             else:
                 logging.info("Don't know what to do with type %s", t)
 
@@ -324,7 +324,7 @@ class Skosify(object):
                 newval = self.mapping_get(p, literalmap)
                 newuris = [v[0] for v in newval]
                 logging.debug("transform literal %s -> %s", p, str(newuris))
-                self.replace_predicate(
+                replace_predicate(
                     rdf, p, newuris, subjecttypes=affected_types)
             else:
                 logging.info("Don't know what to do with literal %s", p)
@@ -347,7 +347,7 @@ class Skosify(object):
             if self.mapping_match(p, relationmap):
                 newval = self.mapping_get(p, relationmap)
                 logging.debug("transform relation %s -> %s", p, str(newval))
-                self.replace_predicate(
+                replace_predicate(
                     rdf, p, newval, subjecttypes=affected_types)
             else:
                 logging.info("Don't know what to do with relation %s", p)
@@ -477,9 +477,9 @@ class Skosify(object):
             rdf.remove((eq, RDF.type, OWL.Class))
             rdf.remove((eq, OWL.unionOf, eql))
             # remove the rdf:List structure
-            self.delete_uri(rdf, eql)
+            delete_uri(rdf, eql)
             if not aggregates:
-                self.delete_uri(rdf, conc)
+                delete_uri(rdf, conc)
 
         if len(aggregate_concepts) > 0:
             ns = cs.replace(localname(cs), '')
@@ -643,7 +643,7 @@ class Skosify(object):
                 # SKOS classes may be safely removed
                 if cl.startswith(SKOS):
                     logging.debug("removing SKOS class definition: %s", cl)
-                    self.replace_subject(rdf, cl, None)
+                    replace_subject(rdf, cl, None)
                     continue
                 # if there are instances of the class, keep the class def
                 if rdf.value(None, RDF.type, cl, any=True) is not None:
@@ -665,7 +665,7 @@ class Skosify(object):
                     rdf.remove((cl, RDF.type, t))
                 else:  # remove it completely
                     logging.debug("removing unused class definition: %s", cl)
-                    self.replace_subject(rdf, cl, None)
+                    replace_subject(rdf, cl, None)
 
     def cleanup_properties(self, rdf):
         """Remove unnecessary property definitions.
@@ -679,11 +679,11 @@ class Skosify(object):
                 if prop.startswith(SKOS):
                     logging.debug(
                         "removing SKOS property definition: %s", prop)
-                    self.replace_subject(rdf, prop, None)
+                    replace_subject(rdf, prop, None)
                     continue
                 if prop.startswith(DC):
                     logging.debug("removing DC property definition: %s", prop)
-                    self.replace_subject(rdf, prop, None)
+                    replace_subject(rdf, prop, None)
                     continue
 
                 # if there are triples using the property, keep the property def
@@ -691,7 +691,7 @@ class Skosify(object):
                     continue
 
                 logging.debug("removing unused property definition: %s", prop)
-                self.replace_subject(rdf, prop, None)
+                replace_subject(rdf, prop, None)
 
     def find_reachable(self, rdf, res):
         """Return the set of reachable resources starting from the given resource,
@@ -754,7 +754,7 @@ class Skosify(object):
         logging.debug("deleting %s non-reachable resources", len(nonreachable))
 
         for subj in nonreachable:
-            self.delete_uri(rdf, subj)
+            delete_uri(rdf, subj)
 
     def check_labels(self, rdf, preflabel_policy):
         # check that resources have only one prefLabel per language
