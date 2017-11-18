@@ -7,29 +7,34 @@ import sys
 from rdflib import Graph
 
 
-def read_rdf(filenames, infmt):
-    """Read the given RDF file(s) and return an rdflib Graph object or raise an Exception."""
+def read_rdf(sources, infmt):
+    """Read a list of RDF files and/or RDF graphs. May raise an Exception."""
     rdf = Graph()
 
-    for filename in filenames:
-        if filename == '-':
+    for source in sources:
+        if isinstance(source, Graph):
+            for triple in source:
+                rdf.add(triple)
+            continue
+
+        if source == '-':
             f = sys.stdin
         else:
-            f = open(filename, 'r')
+            f = open(source, 'r')
 
         if infmt:
             fmt = infmt
         else:
             # determine format based on file extension
             fmt = 'xml'  # default
-            if filename.endswith('n3'):
+            if source.endswith('n3'):
                 fmt = 'n3'
-            if filename.endswith('ttl'):
+            if source.endswith('ttl'):
                 fmt = 'n3'
-            if filename.endswith('nt'):
+            if source.endswith('nt'):
                 fmt = 'nt'
 
-        logging.debug("Parsing input file %s (format: %s)", filename, fmt)
+        logging.debug("Parsing input file %s (format: %s)", source, fmt)
         rdf.parse(f, format=fmt)
 
     return rdf

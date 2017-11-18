@@ -28,12 +28,15 @@ As Python library:
 
     import skosify  # contains two functions: skosify and config
 
-    rdf = skosify.skosify('myontology.owl', label='My Ontology')
-    rdf.serialize(destination='myontology-skos.rdf', format='xml')
+    voc = skosify.skosify('myontology.owl', label='My Ontology')
+    voc.serialize(destination='myontology-skos.rdf', format='xml')
 
+    rdf = Graph()
+    rdf.parse('myontology.owl')
     config = skosify.config('owl2skos.cfg')
-    rdf = skosify.skosify('myontology.owl', **config)
+    voc = skosify.skosify(rdf, **config)
 
+The `skosify` function gets a list of RDF input files and/or Graphs, and named configuration settings.
 
 Additional documentation can be found `in the GitHub project wiki <https://github.com/NatLibFi/Skosify/wiki>`_
 

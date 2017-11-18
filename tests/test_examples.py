@@ -5,6 +5,7 @@ import glob
 import re
 import os
 import logging
+
 from rdflib import Graph
 
 import skosify
@@ -36,6 +37,17 @@ def test_example(infile):
         voc.serialize(destination=outfile, format='turtle')
 
     expect_rdf(expect, voc)
+
+
+def test_sources():
+    infile = 'examples/milk.in.ttl'
+    voc1 = skosify.skosify(infile)
+
+    rdf = Graph()
+    rdf = rdf.parse(infile, format='turtle')
+    voc2 = skosify.skosify(rdf)
+
+    expect_rdf(voc1, voc2)
 
 
 if __name__ == '__main__':

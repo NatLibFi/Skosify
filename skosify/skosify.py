@@ -929,7 +929,7 @@ def check_hierarchy(rdf, break_cycles, keep_related, mark_top_concepts,
     logging.debug("check_hierarchy took %f seconds", (endtime - starttime))
 
 
-def skosify(*inputfiles, **kwargs):
+def skosify(*sources, **kwargs):
 
     config = Config()
     for key in kwargs:
@@ -946,7 +946,7 @@ def skosify(*inputfiles, **kwargs):
 
     logging.debug("Phase 1: Parsing input files")
     try:
-        voc = read_rdf(inputfiles, config.from_format)
+        voc = read_rdf(sources, config.from_format)
     except:
         logging.critical("Parsing failed. Exception: %s",
                          str(sys.exc_info()[1]))
