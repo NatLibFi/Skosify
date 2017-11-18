@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """Provides skosify as command line client."""
 
-from __future__ import print_function
-
 from .skosify import Skosify
 from .rdftools import write_rdf
 from .config import Config
@@ -209,7 +207,7 @@ def main():
     # read config file as defaults and override from command line arguments
     if options.config is not None:
         config.read_file(options.config)
-        options, remainingArgs = get_option_parser(config.options).parse_args()
+        options, remainingArgs = get_option_parser(vars(config)).parse_args()
         for key in vars(options):
             if hasattr(config, key):
                 setattr(config, key, getattr(options, key))

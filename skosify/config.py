@@ -25,6 +25,7 @@ DEFAULT_NAMESPACES = {
 
 
 class Config(object):
+    """Internal class to store and access configuration."""
 
     def __init__(self, filename=None):
         """Create a new config object and possibly read from config file."""
@@ -69,7 +70,10 @@ class Config(object):
 
         # force case-sensitive handling of option names
         cfgparser.optionxform = str
-        cfgparser.read(filename)
+
+        # complains if open failed
+        with open(filename) as fp:
+            cfgparser.readfp(fp)
 
         # parse namespaces from configuration file
         for prefix, uri in cfgparser.items('namespaces'):

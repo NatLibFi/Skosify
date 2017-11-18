@@ -6,8 +6,8 @@ import re
 import os
 import logging
 from rdflib import Graph
-from skosify.skosify import Skosify
-from skosify.config import Config
+
+import skosify
 
 
 def expect_rdf(expect, graph):
@@ -21,12 +21,12 @@ def test_example(infile):
     outfile = re.sub('\.in\.([^.]+)$', r'.out.\1', infile)
     conffile = re.sub('\.in\.[^.]+$', r'.cfg', infile)
 
-    config = Config()
     if os.path.isfile(conffile):
-        config.read_file(conffile)
+        config = skosify.config(conffile)
+    else:
+        config = {}
 
-    skosify = Skosify()
-    voc = skosify.skosify(infile, **vars(config))
+    voc = skosify.skosify(infile, **config)
 
     expect = Graph()
     if os.path.isfile(outfile):

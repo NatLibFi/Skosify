@@ -5,22 +5,18 @@ import logging
 
 from rdflib import URIRef, Namespace
 
-from skosify.skosify import Config
+import skosify
 
 
 def test_config(caplog):
-    assert True
-    return
-
-    # fixme
-    config = Config('examples/dctypes.cfg')
+    config = skosify.config('examples/dctype.cfg')
 
     assert ('root', logging.WARNING,
             'Ignoring unknown configuration option: debug') in caplog.record_tuples
 
-    assert config.narrower is True
+    assert config['narrower'] is True
 
-    assert config.namespaces['dcmitype'] == URIRef('http://purl.org/dc/dcmitype/')
+    assert config['namespaces']['dcmitype'] == URIRef('http://purl.org/dc/dcmitype/')
 
     # TODO: types, literals, relations
 

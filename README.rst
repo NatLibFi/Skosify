@@ -14,13 +14,29 @@ the SKOS specification and related best practices.
 Usage
 =====
 
+As command line script:
+
 .. code-block:: console
 
-    ./skosify.py myontology.owl -o myontology-skos.rdf
+    skosify myontology.owl -o myontology-skos.rdf --label "My Ontology"
 
-Run ``./skosify.py --help`` for more usage information.
+Run ``skosify --help`` for more usage information.
+
+As Python library:
+
+.. code-block:: python
+
+    import skosify  # contains two functions: skosify and config
+
+    rdf = skosify.skosify('myontology.owl', label='My Ontology')
+    rdf.serialize(destination='myontology-skos.rdf', format='xml')
+
+    config = skosify.config('owl2skos.cfg')
+    rdf = skosify.skosify('myontology.owl', **config)
+
 
 Additional documentation can be found `in the GitHub project wiki <https://github.com/NatLibFi/Skosify/wiki>`_
+
 
 Additional scripts
 ==================
