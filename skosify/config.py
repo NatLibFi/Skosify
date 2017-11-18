@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Read Skosify configuration file."""
+"""Store skosify configuration and read config file."""
 
 import logging
 import sys

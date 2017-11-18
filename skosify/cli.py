@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Provides skosify as command line client."""
 
-from .skosify import Skosify
+from skosify import skosify
 from .rdftools import write_rdf
 from .config import Config
 
@@ -217,8 +217,7 @@ def main():
     else:
         inputfiles = ['-']
 
-    skosify = Skosify()
-    voc = skosify.skosify(*inputfiles, **vars(config))
+    voc = skosify(*inputfiles, **vars(config))
     write_rdf(voc, output, to_format)
 
 
