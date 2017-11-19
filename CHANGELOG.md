@@ -2,6 +2,8 @@
 
 ## next release
 
+* Make parts of the functionality available as module
+* Drop internal object Skosify
 * Drop support of rdflib < 3.0.0
 * Separate command line client and core library
 * Add unit tests and documentation

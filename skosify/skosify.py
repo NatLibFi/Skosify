@@ -18,6 +18,8 @@ from .rdftools import (
 )
 
 from .config import Config
+import infer
+
 
 # namespace defs
 SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
@@ -238,50 +240,6 @@ def transform_sparql_construct(rdf, construct_query):
         newgraph.add(triple)
 
     return newgraph
-
-
-def infer_classes(rdf):
-    """Perform RDFS subclass inference.
-
-    Mark all resources with a subclass type with the upper class."""
-
-    logging.debug("doing RDFS subclass inference")
-    # find out the subclass mappings
-    upperclasses = {}  # key: class val: set([superclass1, superclass2..])
-    for s, o in rdf.subject_objects(RDFS.subClassOf):
-        upperclasses.setdefault(s, set())
-        for uc in rdf.transitive_objects(s, RDFS.subClassOf):
-            if uc != s:
-                upperclasses[s].add(uc)
-
-    # set the superclass type information for subclass instances
-    for s, ucs in upperclasses.items():
-        logging.debug("setting superclass types: %s -> %s", s, str(ucs))
-        for res in rdf.subjects(RDF.type, s):
-            for uc in ucs:
-                rdf.add((res, RDF.type, uc))
-
-
-def infer_properties(rdf):
-    """Perform RDFS subproperty inference.
-
-    Add superproperties where subproperties have been used."""
-
-    logging.debug("doing RDFS subproperty inference")
-    # find out the subproperty mappings
-    superprops = {}  # key: property val: set([superprop1, superprop2..])
-    for s, o in rdf.subject_objects(RDFS.subPropertyOf):
-        superprops.setdefault(s, set())
-        for sp in rdf.transitive_objects(s, RDFS.subPropertyOf):
-            if sp != s:
-                superprops[s].add(sp)
-
-    # add the superproperty relationships
-    for p, sps in superprops.items():
-        logging.debug("setting superproperties: %s -> %s", p, str(sps))
-        for s, o in rdf.subject_objects(p):
-            for sp in sps:
-                rdf.add((s, sp, o))
 
 
 def transform_concepts(rdf, typemap):
@@ -517,6 +475,34 @@ def transform_deprecated_concepts(rdf, cs):
             rdf.add((conc, SKOS.inScheme, dcs))
 
 
+# { ?a skos:broader ?b . ?b skos:broader => ?c }
+# => { ?a skos:broaderTransitive ?b, ?c . ?b skos:broaderTransitive ?c }
+def infer_broaderTransitive(rdf):
+    for conc in rdf.subjects(RDF.type, SKOS.Concept):
+        for bt in rdf.transitive_objects(conc, SKOS.broader):
+            if bt == conc:
+                continue
+            rdf.add((conc, SKOS.broaderTransitive, bt))
+
+
+# { ?a skos:broader ?b . ?b skos:broader => ?c }
+# => { ?c skos:narrowerTransitive ?a, ?b . ?b skos:narrowerTransitive ?a }
+def infer_narrowerTransitive(rdf):
+    for conc in rdf.subjects(RDF.type, SKOS.Concept):
+        for bt in rdf.transitive_objects(conc, SKOS.broader):
+            if bt == conc:
+                continue
+            rdf.add((bt, SKOS.narrowerTransitive, conc))
+
+
+# { ?a skos:broader ?b } <=> { ?b skos:narrower ?a }
+def infer_broader_narrower(rdf):
+    for s, o in rdf.subject_objects(SKOS.broader):
+        rdf.add((o, SKOS.narrower, s))
+    for s, o in rdf.subject_objects(SKOS.narrower):
+        rdf.add((o, SKOS.broader, s))
+
+
 def enrich_relations(rdf, enrich_mappings, use_narrower, use_transitive):
     """Enrich the SKOS relations according to SKOS semantics, including
     subproperties of broader and symmetric related properties. If use_narrower
@@ -533,6 +519,7 @@ def enrich_relations(rdf, enrich_mappings, use_narrower, use_transitive):
     # 1. first enrich mapping relationships (because they affect regular ones)
 
     if enrich_mappings:
+
         # relatedMatch goes both ways
         for s, o in rdf.subject_objects(SKOS.relatedMatch):
             rdf.add((s, SKOS.related, o))
@@ -562,9 +549,8 @@ def enrich_relations(rdf, enrich_mappings, use_narrower, use_transitive):
 
     # 2. then enrich regular relationships
 
-    # related goes both ways
-    for s, o in rdf.subject_objects(SKOS.related):
-        rdf.add((o, SKOS.related, s))
+    # related <-> related
+    infer.skos_related(rdf)
 
     # broaderGeneric -> broader + inverse narrowerGeneric
     for s, o in rdf.subject_objects(SKOSEXT.broaderGeneric):
@@ -574,25 +560,11 @@ def enrich_relations(rdf, enrich_mappings, use_narrower, use_transitive):
     for s, o in rdf.subject_objects(SKOSEXT.broaderPartitive):
         rdf.add((s, SKOS.broader, o))
 
-    # broader -> narrower
-    if use_narrower:
-        for s, o in rdf.subject_objects(SKOS.broader):
-            rdf.add((o, SKOS.narrower, s))
-    # narrower -> broader
-    for s, o in rdf.subject_objects(SKOS.narrower):
-        rdf.add((o, SKOS.broader, s))
-        if not use_narrower:
-            rdf.remove((s, SKOS.narrower, o))
+    infer.skos_hierarchical(rdf, use_narrower)
 
     # transitive closure: broaderTransitive and narrowerTransitive
     if use_transitive:
-        for conc in rdf.subjects(RDF.type, SKOS.Concept):
-            for bt in rdf.transitive_objects(conc, SKOS.broader):
-                if bt == conc:
-                    continue
-                rdf.add((conc, SKOS.broaderTransitive, bt))
-                if use_narrower:
-                    rdf.add((bt, SKOS.narrowerTransitive, conc))
+        infer.skos_hierarchical_transitive(rdf, use_narrower)
     else:
         # transitive relationships are not wanted, so remove them
         for s, o in rdf.subject_objects(SKOS.broaderTransitive):
@@ -600,15 +572,7 @@ def enrich_relations(rdf, enrich_mappings, use_narrower, use_transitive):
         for s, o in rdf.subject_objects(SKOS.narrowerTransitive):
             rdf.remove((s, SKOS.narrowerTransitive, o))
 
-    # hasTopConcept -> topConceptOf
-    for s, o in rdf.subject_objects(SKOS.hasTopConcept):
-        rdf.add((o, SKOS.topConceptOf, s))
-    # topConceptOf -> hasTopConcept
-    for s, o in rdf.subject_objects(SKOS.topConceptOf):
-        rdf.add((o, SKOS.hasTopConcept, s))
-    # topConceptOf -> inScheme
-    for s, o in rdf.subject_objects(SKOS.topConceptOf):
-        rdf.add((s, SKOS.inScheme, o))
+    infer.skos_topConcept(rdf)
 
 
 def setup_top_concepts(rdf, mark_top_concepts):
@@ -960,8 +924,9 @@ def skosify(*sources, **kwargs):
     if config.construct_query is not None:
         voc = transform_sparql_construct(voc, config.construct_query)
     if config.infer:
-        infer_classes(voc)
-        infer_properties(voc)
+        logging.debug("doing RDFS subclass and properties inference")
+        infer.rdfs_classes(voc)
+        infer.rdfs_properties(voc)
 
     logging.debug("Phase 3: Setting up namespaces")
     for prefix, uri in namespaces.items():

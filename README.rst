@@ -26,7 +26,7 @@ As Python library:
 
 .. code-block:: python
 
-    import skosify  # contains two functions: skosify and config
+    import skosify  # contains skosify, config, and infer
 
     voc = skosify.skosify('myontology.owl', label='My Ontology')
     voc.serialize(destination='myontology-skos.rdf', format='xml')
@@ -35,6 +35,13 @@ As Python library:
     rdf.parse('myontology.owl')
     config = skosify.config('owl2skos.cfg')
     voc = skosify.skosify(rdf, **config)
+
+    skosify.infer.skos_related(rdf)
+    skosify.infer.skos_topConcept(rdf):
+    skosify.infer.skos_hierarchical(rdf, narrower=True)
+    skos_hierarchical_transitive(rdf, narrower=True)
+    skosify.infer.rdfs_classes(rdf)
+    skosify.infer.rdfs_properties(rdf)
 
 The `skosify` function gets a list of RDF input files and/or Graphs, and named configuration settings.
 
