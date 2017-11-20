@@ -39,7 +39,8 @@ As Python library:
     skosify.infer.skos_related(rdf)
     skosify.infer.skos_topConcept(rdf):
     skosify.infer.skos_hierarchical(rdf, narrower=True)
-    skos_hierarchical_transitive(rdf, narrower=True)
+    skosify.infer.skos_transitive(rdf, narrower=True)
+
     skosify.infer.rdfs_classes(rdf)
     skosify.infer.rdfs_properties(rdf)
 
@@ -56,3 +57,33 @@ The `scripts` directory contains two additional scripts to be used together with
 * `skosify.cgi` a web application to use Skosify
 * `sparqldump.py` a command line client to download RDF via a SPARQL endpoint
 
+See also
+========
+
+Author and Contributors
+-----------------------
+
+-  Osma Suominen
+-  Jakob Voß
+-  Dan Michael O. Heggø
+-  Sini Pessala
+
+Related works
+-------------
+
+-  `mc2skos <https://github.com/scriptotek/mc2skos>`__ can convert
+   MARC21 Classification and Authority records to SKOS
+
+Publications
+------------
+
+-  Osma Suominen and Christian Mader: Assessing and Improving the
+   Quality of SKOS Vocabularies. Journal on Data Semantics, vol. 3, no.
+   1, pp. 47-73, June, 2014
+   (`PDF <https://seco.cs.aalto.fi/publications/2014/suominen-mader-skosquality.pdf>`__)
+
+-  Osma Suominen and Eero Hyvönen: Improving the Quality of SKOS
+   Vocabularies with Skosify. Proceedings of the 18th International
+   Conference on Knowledge Engineering and Knowledge Management (EKAW
+   2012), Springer-Verlag, Galway, Ireland, October, 2012
+   (`PDF <https://seco.cs.aalto.fi/publications/2012/suominen-hyvonen-skosify-2012.pdf>`__)

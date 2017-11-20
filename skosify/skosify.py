@@ -18,7 +18,7 @@ from .rdftools import (
 )
 
 from .config import Config
-import infer
+from . import infer
 
 
 # namespace defs
@@ -564,7 +564,7 @@ def enrich_relations(rdf, enrich_mappings, use_narrower, use_transitive):
 
     # transitive closure: broaderTransitive and narrowerTransitive
     if use_transitive:
-        infer.skos_hierarchical_transitive(rdf, use_narrower)
+        infer.skos_transitive(rdf, use_narrower)
     else:
         # transitive relationships are not wanted, so remove them
         for s, o in rdf.subject_objects(SKOS.broaderTransitive):
@@ -893,12 +893,14 @@ def check_hierarchy(rdf, break_cycles, keep_related, mark_top_concepts,
     logging.debug("check_hierarchy took %f seconds", (endtime - starttime))
 
 
-def skosify(*sources, **kwargs):
+def skosify(*sources, **config):
+    """Convert, extend, and check SKOS vocabulary."""
 
-    config = Config()
-    for key in kwargs:
-        if hasattr(config, key):
-            setattr(config, key, kwargs[key])
+    cfg = Config()
+    for key in config:
+        if hasattr(cfg, key):
+            setattr(cfg, key, config[key])
+    config = cfg
 
     namespaces = config.namespaces
     typemap = config.types

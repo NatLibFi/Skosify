@@ -24,6 +24,11 @@ DEFAULT_NAMESPACES = {
 }
 
 
+def config(filename=None):
+    """Get default configuration and optional settings from config file."""
+    return vars(Config(filename))
+
+
 class Config(object):
     """Internal class to store and access configuration."""
 

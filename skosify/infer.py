@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Inference rules."""
+"""Inference rules are bundled in one namespace."""
 
 import logging
 from rdflib import Namespace, RDF, RDFS
@@ -8,36 +8,34 @@ SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
 
 
 def skos_related(rdf):
-    """ { ?a skos:related ?b } <=> { ?b skos:related ?a } """
+    """Make sure that skos:related is stated in both directions (S23)."""
     for s, o in rdf.subject_objects(SKOS.related):
         rdf.add((o, SKOS.related, s))
 
 
 def skos_topConcept(rdf):
-    # (S8) hasTopConcept -> topConceptOf
+    """Infer skos:topConceptOf/skos:hasTopConcept (S8) and skos:inScheme (S7)."""
     for s, o in rdf.subject_objects(SKOS.hasTopConcept):
         rdf.add((o, SKOS.topConceptOf, s))
-    # (S8) topConceptOf -> hasTopConcept
     for s, o in rdf.subject_objects(SKOS.topConceptOf):
         rdf.add((o, SKOS.hasTopConcept, s))
-    # (S7) topConceptOf -> inScheme
     for s, o in rdf.subject_objects(SKOS.topConceptOf):
         rdf.add((s, SKOS.inScheme, o))
 
 
 def skos_hierarchical(rdf, narrower=True):
-    # broader -> narrower
+    """Infer skos:broader/skos:narrower (S25) but only keep skos:narrower on request."""
     if narrower:
         for s, o in rdf.subject_objects(SKOS.broader):
             rdf.add((o, SKOS.narrower, s))
-    # narrower -> broader
     for s, o in rdf.subject_objects(SKOS.narrower):
         rdf.add((o, SKOS.broader, s))
         if not narrower:
             rdf.remove((s, SKOS.narrower, o))
 
 
-def skos_hierarchical_transitive(rdf, narrower=True):
+def skos_transitive(rdf, narrower=True):
+    """Perform transitive closure inference (S22, S24)."""
     for conc in rdf.subjects(RDF.type, SKOS.Concept):
         for bt in rdf.transitive_objects(conc, SKOS.broader):
             if bt == conc:
