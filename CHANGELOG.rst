@@ -1,7 +1,7 @@
 Skosify Release Notes
 =====================
 
-v2.0.0 - 2017-11-20
+v2.0.1 - 2017-11-20
 -------------------
 
 This release does not change functionality of the command line client (except
