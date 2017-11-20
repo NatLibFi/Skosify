@@ -23,6 +23,8 @@ comes with a major refactoring of internal source code and add unit tests.
 v1.0 - 2014-01-14
 -----------------
 
+See also the `release anouncement <http://lists.w3.org/Archives/Public/public-esw-thes/2014Jan/0010.html>`_.
+
 -  Support both Python 2.x and 3.x with the same code (#35)
 -  PEP 8 coding style conformance (#39)
 -  Enable mapping of relations to inverse properties (#32)

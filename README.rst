@@ -15,6 +15,15 @@ represent the input data losslessly using SKOS best practices. When given
 SKOS as input, it will be cleaned up, validated and enriched to follow
 the SKOS specification and related best practices.
 
+Installation
+============
+
+Skosify requires Python 2.6 or newer.
+
+.. code-block:: console
+
+    pip install --upgrade skosify
+
 Usage
 =====
 
@@ -22,7 +31,9 @@ As command line script:
 
 .. code-block:: console
 
-    skosify myontology.owl -o myontology-skos.rdf --label "My Ontology"
+    skosify myvoc.owl -o myvoc-skos.ttl --label "My Ontology"
+
+This will read the file ``myvoc.owl`` in RDF/XML format and write SKOS file ``myvoc-skos.ttl`` in Turtle format, setting the name of the Concept Scheme to ``My Ontology``.
 
 Run ``skosify --help`` for more usage information.
 
@@ -48,7 +59,7 @@ As Python library:
     skosify.infer.rdfs_classes(rdf)
     skosify.infer.rdfs_properties(rdf)
 
-See `the API Reference <http://skosify.readthedocs.io/en/latest/api.html>`_ for documentation of the public API of this module. Everything not listed there might change.
+See `the API Reference <http://skosify.readthedocs.io/en/latest/api.html>`_ for documentation of the public API of this module. Everything not listed there might change in a future version.
 
 Additional documentation can be found `in the GitHub project wiki <https://github.com/NatLibFi/Skosify/wiki>`_
 
@@ -61,33 +72,19 @@ The `scripts` directory contains two additional scripts to be used together with
 * `skosify.cgi` a web application to use Skosify
 * `sparqldump.py` a command line client to download RDF via a SPARQL endpoint
 
-See also
-========
-
 Author and Contributors
------------------------
+=======================
 
 -  Osma Suominen
 -  Jakob Voß
 -  Dan Michael O. Heggø
 -  Sini Pessala
 
-Related works
--------------
+See also
+========
 
--  `mc2skos <https://github.com/scriptotek/mc2skos>`__ can convert
-   MARC21 Classification and Authority records to SKOS
+See `background` for history, related works, publications etc.
 
-Publications
-------------
+.. background: docs/background.rst
 
--  Osma Suominen and Christian Mader: Assessing and Improving the
-   Quality of SKOS Vocabularies. Journal on Data Semantics, vol. 3, no.
-   1, pp. 47-73, June, 2014
-   (`PDF <https://seco.cs.aalto.fi/publications/2014/suominen-mader-skosquality.pdf>`__)
 
--  Osma Suominen and Eero Hyvönen: Improving the Quality of SKOS
-   Vocabularies with Skosify. Proceedings of the 18th International
-   Conference on Knowledge Engineering and Knowledge Management (EKAW
-   2012), Springer-Verlag, Galway, Ireland, October, 2012
-   (`PDF <https://seco.cs.aalto.fi/publications/2012/suominen-hyvonen-skosify-2012.pdf>`__)
