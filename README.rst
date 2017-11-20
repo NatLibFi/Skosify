@@ -1,7 +1,11 @@
+.. image:: https://badge.fury.io/py/skosify.svg
+   :target: https://badge.fury.io/py/skosify.svg    
 .. image:: https://travis-ci.org/NatLibFi/Skosify.svg?branch=master
-    :target: https://travis-ci.org/NatLibFi/Skosify
+   :target: https://travis-ci.org/NatLibFi/Skosify
+.. image:: https://readthedocs.org/projects/skosify/badge/?version=latest
+   :target: http://skosify.rtfd.io/ 
 .. image:: https://codecov.io/gh/NatLibFi/Skosify/branch/master/graph/badge.svg
-  :target: https://codecov.io/gh/NatLibFi/Skosify
+   :target: https://codecov.io/gh/NatLibFi/Skosify
 
 Python script for converting to `SKOS <http://www.w3.org/2004/02/skos/>`_.
 
@@ -44,7 +48,7 @@ As Python library:
     skosify.infer.rdfs_classes(rdf)
     skosify.infer.rdfs_properties(rdf)
 
-The `skosify` function gets a list of RDF input files and/or Graphs, and named configuration settings.
+See `the API Reference <http://skosify.readthedocs.io/en/latest/api.html>`_ for documentation of the public API of this module. Everything not listed there might change.
 
 Additional documentation can be found `in the GitHub project wiki <https://github.com/NatLibFi/Skosify/wiki>`_
 
