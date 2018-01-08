@@ -519,33 +519,8 @@ def enrich_relations(rdf, enrich_mappings, use_narrower, use_transitive):
     # 1. first enrich mapping relationships (because they affect regular ones)
 
     if enrich_mappings:
-
-        # relatedMatch goes both ways
-        for s, o in rdf.subject_objects(SKOS.relatedMatch):
-            rdf.add((s, SKOS.related, o))
-            rdf.add((o, SKOS.related, s))
-            rdf.add((o, SKOS.relatedMatch, s))
-
-        # exactMatch goes both ways
-        for s, o in rdf.subject_objects(SKOS.exactMatch):
-            rdf.add((o, SKOS.exactMatch, s))
-
-        # closeMatch goes both ways
-        for s, o in rdf.subject_objects(SKOS.closeMatch):
-            rdf.add((o, SKOS.closeMatch, s))
-
-        # broadMatch -> narrowMatch
-        if use_narrower:
-            for s, o in rdf.subject_objects(SKOS.broadMatch):
-                rdf.add((s, SKOS.broader, o))
-                rdf.add((o, SKOS.narrowMatch, s))
-                rdf.add((o, SKOS.narrower, s))
-        # narrowMatch -> broadMatch
-        for s, o in rdf.subject_objects(SKOS.narrowMatch):
-            rdf.add((o, SKOS.broadMatch, s))
-            rdf.add((o, SKOS.broader, s))
-            if not use_narrower:
-                rdf.remove((s, SKOS.narrowMatch, o))
+        infer.skos_symmetric_mappings(rdf)
+        infer.skos_hierarchical_mappings(rdf, use_narrower)
 
     # 2. then enrich regular relationships
 

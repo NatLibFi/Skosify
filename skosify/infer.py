@@ -24,7 +24,11 @@ def skos_topConcept(rdf):
 
 
 def skos_hierarchical(rdf, narrower=True):
-    """Infer skos:broader/skos:narrower (S25) but only keep skos:narrower on request."""
+    """Infer skos:broader/skos:narrower (S25) but only keep skos:narrower on request.
+
+    :param bool narrower: If set to False, skos:narrowMatch will not be added,
+        but rather removed.
+    """
     if narrower:
         for s, o in rdf.subject_objects(SKOS.broader):
             rdf.add((o, SKOS.narrower, s))
@@ -43,6 +47,48 @@ def skos_transitive(rdf, narrower=True):
             rdf.add((conc, SKOS.broaderTransitive, bt))
             if narrower:
                 rdf.add((bt, SKOS.narrowerTransitive, conc))
+
+
+def skos_symmetric_mappings(rdf, related=True):
+    """Ensure that the symmetric mapping properties (skos:relatedMatch,
+    skos:closeMatch and skos:exactMatch) are stated in both directions (S44).
+
+    :param bool related: Add the skos:related super-property for all
+        skos:relatedMatch relations (S41).
+    """
+    for s, o in rdf.subject_objects(SKOS.relatedMatch):
+        rdf.add((o, SKOS.relatedMatch, s))
+        if related:
+            rdf.add((s, SKOS.related, o))
+            rdf.add((o, SKOS.related, s))
+
+    for s, o in rdf.subject_objects(SKOS.closeMatch):
+        rdf.add((o, SKOS.closeMatch, s))
+
+    for s, o in rdf.subject_objects(SKOS.exactMatch):
+        rdf.add((o, SKOS.exactMatch, s))
+
+
+def skos_hierarchical_mappings(rdf, narrower=True):
+    """Infer skos:broadMatch/skos:narrowMatch (S43) and add the super-properties
+    skos:broader/skos:narrower (S41).
+
+    :param bool narrower: If set to False, skos:narrowMatch will not be added,
+        but rather removed.
+    """
+    for s, o in rdf.subject_objects(SKOS.broadMatch):
+        rdf.add((s, SKOS.broader, o))
+        if narrower:
+            rdf.add((o, SKOS.narrowMatch, s))
+            rdf.add((o, SKOS.narrower, s))
+
+    for s, o in rdf.subject_objects(SKOS.narrowMatch):
+        rdf.add((o, SKOS.broadMatch, s))
+        rdf.add((o, SKOS.broader, s))
+        if narrower:
+            rdf.add((s, SKOS.narrower, o))
+        else:
+            rdf.remove((s, SKOS.narrowMatch, o))
 
 
 def rdfs_classes(rdf):

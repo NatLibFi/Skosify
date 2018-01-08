@@ -50,3 +50,77 @@ def test_rdfs_classes():
 
     assert (x, RDF.type, b) in rdf
     assert (x, RDF.type, c) in rdf
+
+
+def test_skos_symmetric_mappings():
+    rdf = Graph()
+    a, b = BNode(), BNode()
+
+    rdf.add((a, SKOS.exactMatch, b))
+    rdf.add((a, SKOS.closeMatch, b))
+    rdf.add((a, SKOS.relatedMatch, b))
+
+    skosify.infer.skos_symmetric_mappings(rdf)
+
+    assert (b, SKOS.exactMatch, a) in rdf
+    assert (b, SKOS.closeMatch, a) in rdf
+    assert (b, SKOS.relatedMatch, a) in rdf
+    assert (a, SKOS.related, b) in rdf
+    assert (b, SKOS.related, a) in rdf
+
+
+def test_skos_symmetric_mappings_without_related():
+    rdf = Graph()
+    a, b = BNode(), BNode()
+
+    rdf.add((a, SKOS.exactMatch, b))
+    rdf.add((a, SKOS.closeMatch, b))
+    rdf.add((a, SKOS.relatedMatch, b))
+
+    skosify.infer.skos_symmetric_mappings(rdf, False)
+
+    assert (b, SKOS.exactMatch, a) in rdf
+    assert (b, SKOS.closeMatch, a) in rdf
+    assert (b, SKOS.relatedMatch, a) in rdf
+    assert (a, SKOS.related, b) not in rdf
+    assert (b, SKOS.related, a) not in rdf
+
+
+def test_skos_hierarchical_mappings():
+    rdf = Graph()
+    a, b, c = BNode(), BNode(), BNode()
+
+    rdf.add((a, SKOS.broadMatch, b))
+    rdf.add((a, SKOS.narrowMatch, c))
+
+    skosify.infer.skos_hierarchical_mappings(rdf)
+
+    assert (b, SKOS.narrowMatch, a) in rdf
+    assert (c, SKOS.narrowMatch, a) not in rdf
+    assert (c, SKOS.broadMatch, a) in rdf
+    assert (b, SKOS.broadMatch, a) not in rdf
+
+    assert (a, SKOS.broader, b) in rdf
+    assert (a, SKOS.narrower, c) in rdf
+    assert (c, SKOS.broader, a) in rdf
+    assert (b, SKOS.narrower, a) in rdf
+
+
+def test_skos_hierarchical_mappings_without_narrower():
+    rdf = Graph()
+    a, b, c = BNode(), BNode(), BNode()
+
+    rdf.add((a, SKOS.broadMatch, b))
+    rdf.add((a, SKOS.narrowMatch, c))
+
+    skosify.infer.skos_hierarchical_mappings(rdf, False)
+
+    assert (b, SKOS.narrowMatch, a) not in rdf
+    assert (c, SKOS.narrowMatch, a) not in rdf
+    assert (c, SKOS.broadMatch, a) in rdf
+    assert (b, SKOS.broadMatch, a) not in rdf
+
+    assert (a, SKOS.broader, b) in rdf
+    assert (a, SKOS.narrower, c) not in rdf
+    assert (c, SKOS.broader, a) in rdf
+    assert (b, SKOS.narrower, a) not in rdf
