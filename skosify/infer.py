@@ -26,7 +26,7 @@ def skos_topConcept(rdf):
 def skos_hierarchical(rdf, narrower=True):
     """Infer skos:broader/skos:narrower (S25) but only keep skos:narrower on request.
 
-    :param bool narrower: If set to False, skos:narrowMatch will not be added,
+    :param bool narrower: If set to False, skos:narrower will not be added,
         but rather removed.
     """
     if narrower:
