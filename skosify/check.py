@@ -17,8 +17,8 @@ def _hierarchy_cycles_visit(rdf, node, parent, break_cycles, status):
         status[node] = 2  # set this node as completed
     elif status.get(node) == 1:  # has been entered but not yet done
         if break_cycles:
-            logging.info("Hierarchy cycle removed at %s -> %s",
-                         localname(parent), localname(node))
+            logging.warning("Hierarchy cycle removed at %s -> %s",
+                            localname(parent), localname(node))
             rdf.remove((node, SKOS.broader, parent))
             rdf.remove((node, SKOS.broaderTransitive, parent))
             rdf.remove((node, SKOSEXT.broaderGeneric, parent))
@@ -26,7 +26,7 @@ def _hierarchy_cycles_visit(rdf, node, parent, break_cycles, status):
             rdf.remove((parent, SKOS.narrower, node))
             rdf.remove((parent, SKOS.narrowerTransitive, node))
         else:
-            logging.info(
+            logging.warning(
                 "Hierarchy cycle detected at %s -> %s, "
                 "but not removed because break_cycles is not active",
                 localname(parent), localname(node))
