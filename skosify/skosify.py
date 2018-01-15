@@ -5,7 +5,9 @@ import time
 import logging
 import datetime
 
-from rdflib import Graph, URIRef, BNode, Literal, Namespace, RDF, RDFS
+from rdflib import Graph, URIRef, BNode, Literal
+from rdflib.namespace import Namespace, RDF, RDFS, OWL, DC, DCTERMS, XSD, SKOS
+from .rdftools.namespace import SKOSEXT
 from .rdftools import (
     read_rdf,
     replace_subject,
@@ -19,15 +21,6 @@ from .rdftools import (
 
 from .config import Config
 from . import infer
-
-
-# namespace defs
-SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
-SKOSEXT = Namespace("http://purl.org/finnonto/schema/skosext#")
-OWL = Namespace("http://www.w3.org/2002/07/owl#")
-DC = Namespace("http://purl.org/dc/elements/1.1/")
-DCT = Namespace("http://purl.org/dc/terms/")
-XSD = Namespace("http://www.w3.org/2001/XMLSchema#")
 
 
 def mapping_get(uri, mapping):
@@ -209,8 +202,8 @@ def initialize_concept_scheme(rdf, cs, label, language, set_modified):
 
     if set_modified:
         curdate = datetime.datetime.utcnow().replace(microsecond=0).isoformat() + 'Z'
-        rdf.remove((cs, DCT.modified, None))
-        rdf.add((cs, DCT.modified, Literal(curdate, datatype=XSD.dateTime)))
+        rdf.remove((cs, DCTERMS.modified, None))
+        rdf.add((cs, DCTERMS.modified, Literal(curdate, datatype=XSD.dateTime)))
 
 
 def transform_sparql_update(rdf, update_query):

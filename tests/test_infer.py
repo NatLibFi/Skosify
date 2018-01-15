@@ -1,11 +1,10 @@
 # encoding=utf-8
 import unittest
 import pytest
-from rdflib import Graph, BNode, Namespace, RDF, RDFS
+from rdflib import Graph, BNode
+from rdflib.namespace import Namespace, RDF, RDFS, SKOS
 
 import skosify
-
-SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
 
 
 def test_skos_related():
