@@ -20,7 +20,7 @@ from .rdftools import (
 )
 
 from .config import Config
-from . import infer
+from . import infer, check
 
 
 def mapping_get(uri, mapping):
@@ -764,98 +764,28 @@ def check_labels(rdf, preflabel_policy):
         rdf.remove((res, SKOS.hiddenLabel, label))
 
 
-def check_hierarchy_visit(rdf, node, parent, break_cycles, status):
-    if status.get(node) is None:
-        status[node] = 1  # entered
-        for child in sorted(rdf.subjects(SKOS.broader, node)):
-            check_hierarchy_visit(
-                rdf, child, node, break_cycles, status)
-        status[node] = 2  # set this node as completed
-    elif status.get(node) == 1:  # has been entered but not yet done
-        if break_cycles:
-            logging.info("Hierarchy cycle removed at %s -> %s",
-                         localname(parent), localname(node))
-            rdf.remove((node, SKOS.broader, parent))
-            rdf.remove((node, SKOS.broaderTransitive, parent))
-            rdf.remove((node, SKOSEXT.broaderGeneric, parent))
-            rdf.remove((node, SKOSEXT.broaderPartitive, parent))
-            rdf.remove((parent, SKOS.narrower, node))
-            rdf.remove((parent, SKOS.narrowerTransitive, node))
-        else:
-            logging.info(
-                "Hierarchy cycle detected at %s -> %s, "
-                "but not removed because break_cycles is not active",
-                localname(parent), localname(node))
-    elif status.get(node) == 2:  # is completed already
-        pass
-
-
 def check_hierarchy(rdf, break_cycles, keep_related, mark_top_concepts,
                     eliminate_redundancy):
-    # check for cycles in the skos:broader hierarchy
-    # using a recursive depth first search algorithm
+    """Check for, and optionally fix, problems in the skos:broader hierarchy
+    using a recursive depth first search algorithm.
+
+    :param Graph rdf: An rdflib.graph.Graph object.
+    :param bool fix_cycles: Break cycles.
+    :param bool fix_disjoint_relations: Remoe skos:related overlapping with
+        skos:broaderTransitive.
+    :param bool fix_redundancy: Remove skos:broader between two concepts otherwise
+        connected by skos:broaderTransitive.
+    """
     starttime = time.time()
 
-    top_concepts = sorted(rdf.subject_objects(SKOS.hasTopConcept))
-    status = {}
-    for cs, root in top_concepts:
-        check_hierarchy_visit(
-            rdf, root, None, break_cycles, status=status)
-    # double check that all concepts were actually visited in the search,
-    # and visit remaining ones if necessary
-    recheck_top_concepts = False
-    for conc in sorted(rdf.subjects(RDF.type, SKOS.Concept)):
-        if conc not in status:
-            recheck_top_concepts = True
-            check_hierarchy_visit(
-                rdf, conc, None, break_cycles, status=status)
-    if recheck_top_concepts:
+    if check.hierarchy_cycles(rdf, break_cycles):
         logging.info(
             "Some concepts not reached in initial cycle detection. "
             "Re-checking for loose concepts.")
         setup_top_concepts(rdf, mark_top_concepts)
 
-    # check overlap between disjoint semantic relations
-    # related and broaderTransitive
-    for conc1, conc2 in sorted(rdf.subject_objects(SKOS.related)):
-        if conc2 in sorted(rdf.transitive_objects(conc1, SKOS.broader)):
-            if keep_related:
-                logging.warning(
-                    "Concepts %s and %s connected by both "
-                    "skos:broaderTransitive and skos:related, "
-                    "but keeping it because keep_related is enabled",
-                    conc1, conc2)
-            else:
-                logging.warning(
-                    "Concepts %s and %s connected by both "
-                    "skos:broaderTransitive and skos:related, "
-                    "removing skos:related",
-                    conc1, conc2)
-                rdf.remove((conc1, SKOS.related, conc2))
-                rdf.remove((conc2, SKOS.related, conc1))
-
-    # check for hierarchical redundancy and eliminate it, if configured to do
-    # so
-    for conc, parent1 in rdf.subject_objects(SKOS.broader):
-        for parent2 in rdf.objects(conc, SKOS.broader):
-            if parent1 == parent2:
-                continue  # must be different
-            if parent2 in rdf.transitive_objects(parent1, SKOS.broader):
-                if eliminate_redundancy:
-                    logging.warning(
-                        "Eliminating redundant hierarchical relationship: "
-                        "%s skos:broader %s",
-                        conc, parent2)
-                    rdf.remove((conc, SKOS.broader, parent2))
-                    rdf.remove((conc, SKOS.broaderTransitive, parent2))
-                    rdf.remove((parent2, SKOS.narrower, conc))
-                    rdf.remove((parent2, SKOS.narrowerTransitive, conc))
-                else:
-                    logging.warning(
-                        "Redundant hierarchical relationship "
-                        "%s skos:broader %s found, but not eliminated "
-                        "because eliminate_redundancy is not set",
-                        conc, parent2)
+    check.disjoint_relations(rdf, not keep_related)
+    check.hierarchical_redundancy(rdf, eliminate_redundancy)
 
     endtime = time.time()
     logging.debug("check_hierarchy took %f seconds", (endtime - starttime))
