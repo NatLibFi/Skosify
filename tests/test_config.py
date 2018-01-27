@@ -2,7 +2,7 @@
 import unittest
 import pytest
 import logging
-
+from io import StringIO
 from rdflib import URIRef, Namespace
 
 import skosify
@@ -19,6 +19,13 @@ def test_config(caplog):
     assert config['namespaces']['dcmitype'] == URIRef('http://purl.org/dc/dcmitype/')
 
     # TODO: types, literals, relations
+
+
+def test_empty_config_file():
+    cfg = StringIO()
+    cfg.write(u'')
+    config = skosify.config(cfg)
+    cfg.close()
 
 
 if __name__ == '__main__':

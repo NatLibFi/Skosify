@@ -5,6 +5,8 @@ import logging
 import sys
 import argparse
 from rdflib import URIRef, Namespace, RDF, RDFS
+from io import StringIO
+from textwrap import dedent
 
 # import for both Python 2 and Python 3
 try:
@@ -24,16 +26,19 @@ DEFAULT_NAMESPACES = {
 }
 
 
-def config(filename=None):
-    """Get default configuration and optional settings from config file."""
-    return vars(Config(filename))
+def config(file=None):
+    """Get default configuration and optional settings from config file.
+
+    - file: can be a filename or a file object
+    """
+    return vars(Config(file))
 
 
 class Config(object):
     """Internal class to store and access configuration."""
 
-    def __init__(self, filename=None):
-        """Create a new config object and possibly read from config file."""
+    def __init__(self, file=None):
+        """Create a new config object and read from config file if given."""
 
         # default options
         self.from_format = None
@@ -65,19 +70,45 @@ class Config(object):
         # namespaces
         self.namespaces = DEFAULT_NAMESPACES
 
-        if filename is not None:
-            self.read_file(filename)
+        if file is not None:
+            self.read_file(file)
 
-    def read_file(self, filename):
+    def read_file(self, file):
         """Read configuration from file and update config object."""
 
         cfgparser = ConfigParser()
 
+        # Add empty defaults to avoid NoSectionError if some sections are missing
+        defaults_str = dedent(u"""
+        [namespaces]
+
+        [types]
+
+        [literals]
+
+        [relations]
+
+        [options]
+
+        """)
+        with StringIO(defaults_str) as defaults_fp:
+            if sys.version_info >= (3, 2):
+                cfgparser.read_file(defaults_fp)  # Added in Python 3.2
+            else:
+                cfgparser.readfp(defaults_fp)  # Deprecated since Python 3.2
+
         # force case-sensitive handling of option names
         cfgparser.optionxform = str
 
+        def get_fp(file):
+            try:
+                return open(file)  # if it's a filename
+            except TypeError:
+                return file  # otherwise, assume it was already a file object
+
         # complains if open failed
-        with open(filename) as fp:
+        with get_fp(file) as fp:
+            # now we have a file object
             if sys.version_info >= (3, 2):
                 cfgparser.read_file(fp)  # Added in Python 3.2
             else:
