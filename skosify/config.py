@@ -5,7 +5,6 @@ import logging
 import sys
 import argparse
 from rdflib import URIRef, Namespace, RDF, RDFS
-from rdflib.namespace import ClosedNamespace
 
 # import for both Python 2 and Python 3
 try:
