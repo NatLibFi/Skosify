@@ -5,6 +5,7 @@ import logging
 import sys
 import argparse
 from rdflib import URIRef, Namespace, RDF, RDFS
+from rdflib.namespace import ClosedNamespace
 
 # import for both Python 2 and Python 3
 try:
@@ -132,7 +133,11 @@ def expand_curielike(namespaces, curie):
         return curie
 
     if ns in namespaces:
-        return URIRef(namespaces[ns].term(localpart))
+        nsvalue = namespaces[ns]
+        try:
+            return URIRef(nsvalue.term(localpart))
+        except Exception:
+            return URIRef(str(nsvalue) + localpart)
     else:
         logging.warning("Unknown namespace prefix %s", ns)
         return URIRef(curie)
