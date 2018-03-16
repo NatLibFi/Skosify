@@ -6,7 +6,6 @@ import sys
 import argparse
 from rdflib import URIRef, Namespace, RDF, RDFS
 from io import StringIO
-from textwrap import dedent
 from copy import copy
 
 # import for both Python 2 and Python 3
@@ -25,6 +24,19 @@ DEFAULT_NAMESPACES = {
     'dct': Namespace("http://purl.org/dc/terms/"),
     'xsd': Namespace("http://www.w3.org/2001/XMLSchema#"),
 }
+
+DEFAULT_SECTIONS = u"""
+[namespaces]
+
+[types]
+
+[literals]
+
+[relations]
+
+[options]
+
+"""
 
 
 def config(file=None):
@@ -72,34 +84,21 @@ class Config(object):
         self.namespaces = copy(DEFAULT_NAMESPACES)
 
         if file is not None:
-            self.read_file(file)
+            self.read_and_parse_config_file(file)
 
-    def read_file(self, file):
-        """Read configuration from file and update config object."""
-
+    def read_and_parse_config_file(self, file):
         cfgparser = ConfigParser()
-
-        # Add empty defaults to avoid NoSectionError if some sections are missing
-        defaults_str = dedent(u"""
-        [namespaces]
-
-        [types]
-
-        [literals]
-
-        [relations]
-
-        [options]
-
-        """)
-        with StringIO(defaults_str) as defaults_fp:
-            if sys.version_info >= (3, 2):
-                cfgparser.read_file(defaults_fp)  # Added in Python 3.2
-            else:
-                cfgparser.readfp(defaults_fp)  # Deprecated since Python 3.2
-
         # force case-sensitive handling of option names
         cfgparser.optionxform = str
+        # Add empty defaults to avoid NoSectionError if some sections are missing
+        with StringIO(DEFAULT_SECTIONS) as defaults_fp:
+            self.read_file(cfgparser, defaults_fp)
+        # Then read the config file
+        self.read_file(cfgparser, file)
+        self.parse_config(cfgparser)
+
+    def read_file(self, cfgparser, file):
+        """Read configuration from file."""
 
         def get_fp(file):
             try:
@@ -114,6 +113,8 @@ class Config(object):
                 cfgparser.read_file(fp)  # Added in Python 3.2
             else:
                 cfgparser.readfp(fp)  # Deprecated since Python 3.2
+
+    def parse_config(self, cfgparser):
 
         # parse namespaces from configuration file
         for prefix, uri in cfgparser.items('namespaces'):
