@@ -7,6 +7,7 @@ import argparse
 from rdflib import URIRef, Namespace, RDF, RDFS
 from io import StringIO
 from textwrap import dedent
+from copy import copy
 
 # import for both Python 2 and Python 3
 try:
@@ -68,7 +69,7 @@ class Config(object):
         self.relations = {}
 
         # namespaces
-        self.namespaces = DEFAULT_NAMESPACES
+        self.namespaces = copy(DEFAULT_NAMESPACES)
 
         if file is not None:
             self.read_file(file)
