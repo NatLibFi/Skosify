@@ -5,6 +5,8 @@ import logging
 import sys
 import argparse
 from rdflib import URIRef, Namespace, RDF, RDFS
+from io import StringIO
+from copy import copy
 
 # import for both Python 2 and Python 3
 try:
@@ -23,17 +25,33 @@ DEFAULT_NAMESPACES = {
     'xsd': Namespace("http://www.w3.org/2001/XMLSchema#"),
 }
 
+DEFAULT_SECTIONS = u"""
+[namespaces]
 
-def config(filename=None):
-    """Get default configuration and optional settings from config file."""
-    return vars(Config(filename))
+[types]
+
+[literals]
+
+[relations]
+
+[options]
+
+"""
+
+
+def config(file=None):
+    """Get default configuration and optional settings from config file.
+
+    - file: can be a filename or a file object
+    """
+    return vars(Config(file))
 
 
 class Config(object):
     """Internal class to store and access configuration."""
 
-    def __init__(self, filename=None):
-        """Create a new config object and possibly read from config file."""
+    def __init__(self, file=None):
+        """Create a new config object and read from config file if given."""
 
         # default options
         self.from_format = None
@@ -63,22 +81,40 @@ class Config(object):
         self.relations = {}
 
         # namespaces
-        self.namespaces = DEFAULT_NAMESPACES
+        self.namespaces = copy(DEFAULT_NAMESPACES)
 
-        if filename is not None:
-            self.read_file(filename)
+        if file is not None:
+            self.read_and_parse_config_file(file)
 
-    def read_file(self, filename):
-        """Read configuration from file and update config object."""
-
+    def read_and_parse_config_file(self, file):
         cfgparser = ConfigParser()
-
         # force case-sensitive handling of option names
         cfgparser.optionxform = str
+        # Add empty defaults to avoid NoSectionError if some sections are missing
+        with StringIO(DEFAULT_SECTIONS) as defaults_fp:
+            self.read_file(cfgparser, defaults_fp)
+        # Then read the config file
+        self.read_file(cfgparser, file)
+        self.parse_config(cfgparser)
+
+    def read_file(self, cfgparser, file):
+        """Read configuration from file."""
+
+        def get_fp(file):
+            try:
+                return open(file)  # if it's a filename
+            except TypeError:
+                return file  # otherwise, assume it was already a file object
 
         # complains if open failed
-        with open(filename) as fp:
-            cfgparser.readfp(fp)
+        with get_fp(file) as fp:
+            # now we have a file object
+            if sys.version_info >= (3, 2):
+                cfgparser.read_file(fp)  # Added in Python 3.2
+            else:
+                cfgparser.readfp(fp)  # Deprecated since Python 3.2
+
+    def parse_config(self, cfgparser):
 
         # parse namespaces from configuration file
         for prefix, uri in cfgparser.items('namespaces'):
