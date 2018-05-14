@@ -115,7 +115,7 @@ class Config(object):
 
         # parse namespaces from configuration file
         for prefix, uri in cfgparser.items('namespaces'):
-            self.namespaces[prefix] = URIRef(uri)
+            self.namespaces[prefix] = Namespace(uri)
 
         # parse types from configuration file
         for key, val in cfgparser.items('types'):
