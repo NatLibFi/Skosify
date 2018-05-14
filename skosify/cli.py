@@ -206,7 +206,7 @@ def main():
 
     # read config file as defaults and override from command line arguments
     if options.config is not None:
-        config.read_file(options.config)
+        config.read_and_parse_config_file(options.config)
         options, remainingArgs = get_option_parser(vars(config)).parse_args()
         for key in vars(options):
             if hasattr(config, key):
