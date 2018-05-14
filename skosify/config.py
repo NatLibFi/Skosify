@@ -89,7 +89,7 @@ class Config(object):
     def read_and_parse_config_file(self, file):
         cfgparser = ConfigParser()
         # force case-sensitive handling of option names
-        cfgparser.optionxform = str
+        cfgparser.optionxform = lambda x: x
         # Add empty defaults to avoid NoSectionError if some sections are missing
         with StringIO(DEFAULT_SECTIONS) as defaults_fp:
             self.read_file(cfgparser, defaults_fp)
