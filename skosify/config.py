@@ -100,19 +100,16 @@ class Config(object):
     def read_file(self, cfgparser, file):
         """Read configuration from file."""
 
-        def get_fp(file):
-            try:
-                return open(file)  # if it's a filename
-            except TypeError:
-                return file  # otherwise, assume it was already a file object
-
-        # complains if open failed
-        with get_fp(file) as fp:
-            # now we have a file object
+        if hasattr(file, 'readline'):
+            # we have a file object
             if sys.version_info >= (3, 2):
-                cfgparser.read_file(fp)  # Added in Python 3.2
+                cfgparser.read_file(file)  # Added in Python 3.2
             else:
-                cfgparser.readfp(fp)  # Deprecated since Python 3.2
+                cfgparser.readfp(file)  # Deprecated since Python 3.2
+
+        else:
+            # we have a file name
+            cfgparser.read(file)
 
     def parse_config(self, cfgparser):
 
