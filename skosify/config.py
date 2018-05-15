@@ -150,7 +150,8 @@ def expand_curielike(namespaces, curie):
 
     if curie == '':
         return None
-    if sys.version < '3':  # Python 2 ConfigParser reads raw byte strings
+    if sys.version < '3' and type(curie) != type(u''):
+        # Python 2 ConfigParser gives raw byte strings
         curie = curie.decode('UTF-8')  # ...make those into Unicode objects
 
     if curie.startswith('[') and curie.endswith(']'):
