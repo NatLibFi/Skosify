@@ -150,7 +150,7 @@ def expand_curielike(namespaces, curie):
 
     if curie == '':
         return None
-    if sys.version < '3' and type(curie) != type(u''):
+    if sys.version < '3' and not isinstance(curie, type(u'')):
         # Python 2 ConfigParser gives raw byte strings
         curie = curie.decode('UTF-8')  # ...make those into Unicode objects
 
