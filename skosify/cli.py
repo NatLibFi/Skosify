@@ -202,7 +202,6 @@ def main():
         logging.basicConfig(format=logformat, level=loglevel)
 
     output = options.output
-    to_format = options.to_format
 
     # read config file as defaults and override from command line arguments
     if options.config is not None:
@@ -218,7 +217,7 @@ def main():
         inputfiles = ['-']
 
     voc = skosify(*inputfiles, **vars(config))
-    write_rdf(voc, output, to_format)
+    write_rdf(voc, output, config.to_format)
 
 
 if __name__ == '__main__':
