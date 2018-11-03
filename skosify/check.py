@@ -5,7 +5,7 @@ import logging
 import time
 from rdflib.namespace import RDF, SKOS
 from .rdftools.namespace import SKOSEXT
-from .rdftools import localname
+from .rdftools import localname, find_prop_overlap
 
 
 def _hierarchy_cycles_visit(rdf, node, parent, break_cycles, status):
@@ -112,3 +112,86 @@ def hierarchical_redundancy(rdf, fix=False):
                         "%s skos:broader %s found, but not eliminated "
                         "because eliminate_redundancy is not set",
                         conc, parent2)
+
+
+def preflabel_uniqueness(rdf, policy='all'):
+    """Check that concepts have no more than one value of skos:prefLabel per
+    language tag (S14), and optionally move additional values to skos:altLabel.
+
+    :param Graph rdf: An rdflib.graph.Graph object.
+    :param str policy: Policy for deciding which value to keep as prefLabel
+        when multiple prefLabels are found. Possible values are 'shortest'
+        (keep the shortest label), 'longest' (keep the longest label) or 'all'
+        (keep all, just log the problems).
+    """
+    resources = set(
+        (res for res, label in rdf.subject_objects(SKOS.prefLabel)))
+
+    for res in sorted(resources):
+        prefLabels = {}
+        for label in rdf.objects(res, SKOS.prefLabel):
+            lang = label.language
+            if lang not in prefLabels:
+                prefLabels[lang] = []
+            prefLabels[lang].append(label)
+        for lang, labels in prefLabels.items():
+            if len(labels) > 1:
+                if policy == 'all':
+                    logging.warning(
+                        "Resource %s has more than one prefLabel@%s, "
+                        "but keeping all of them due to preflabel-policy=all.",
+                        res, lang)
+                    continue
+
+                if policy == 'shortest':
+                    chosen = sorted(sorted(labels), key=len)[0]
+                elif policy == 'longest':
+                    chosen = sorted(sorted(labels), key=len)[-1]
+                else:
+                    logging.critical(
+                        "Unknown preflabel-policy: %s", policy)
+                    sys.exit(1)
+
+                logging.warning(
+                    "Resource %s has more than one prefLabel@%s: "
+                    "choosing %s (policy: %s)",
+                    res, lang, chosen, policy)
+                for label in labels:
+                    if label != chosen:
+                        rdf.remove((res, SKOS.prefLabel, label))
+                        rdf.add((res, SKOS.altLabel, label))
+
+
+def label_overlap(rdf, fix=False):
+    """Check if concepts have the same value for any two of the pairwise
+    disjoint properties skos:prefLabel, skos:altLabel and skos:hiddenLabel
+    (S13), and optionally remove the least significant property.
+
+    :param Graph rdf: An rdflib.graph.Graph object.
+    :param bool fix: Fix the problem by removing the least significant property
+        (altLabel or hiddenLabel).
+    """
+    def label_warning(res, label, keep, remove):
+        if fix:
+            logging.warning(
+                "Resource %s has '%s'@%s as both %s and %s; removing %s",
+                res, label, label.language, keep, remove, remove
+            )
+        else:
+            logging.warning(
+                "Resource %s has '%s'@%s as both %s and %s",
+                res, label, label.language, keep, remove
+            )
+
+    for res, label in find_prop_overlap(rdf, SKOS.prefLabel, SKOS.altLabel):
+        label_warning(res, label, 'prefLabel', 'altLabel')
+        if fix:
+            rdf.remove((res, SKOS.altLabel, label))
+    for res, label in find_prop_overlap(rdf, SKOS.prefLabel, SKOS.hiddenLabel):
+        label_warning(res, label, 'prefLabel', 'hiddenLabel')
+        if fix:
+            rdf.remove((res, SKOS.hiddenLabel, label))
+    for res, label in find_prop_overlap(rdf, SKOS.altLabel, SKOS.hiddenLabel):
+        label_warning(res, label, 'altLabel', 'hiddenLabel')
+        if fix:
+            rdf.remove((res, SKOS.hiddenLabel, label))
