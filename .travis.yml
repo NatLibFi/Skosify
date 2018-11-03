@@ -1,14 +1,17 @@
 language: python
 
-python:
-- '2.7'
-- '3.3'
-- '3.4'
-- '3.5'
-- '3.6'
+matrix:
+  include:
+    - python: 2.7
+    - python: 3.4
+    - python: 3.5
+    - python: 3.6
+    - python: 3.7
+      dist: xenial
+      sudo: true
+      # Per https://github.com/travis-ci/travis-ci/issues/9815#issuecomment-426312699
 
 install:
-- pip install -U setuptools  # Fix for https://travis-ci.org/scriptotek/otsrdflib/jobs/152446727
 - python setup.py install
 - pip install Pygments collective.checkdocs
 
