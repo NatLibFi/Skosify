@@ -56,6 +56,7 @@ class Config(object):
 
         # default options
         self.from_format = None
+        self.to_format = None
         self.mark_top_concepts = True
         self.narrower = True
         self.transitive = False
