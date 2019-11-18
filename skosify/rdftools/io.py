@@ -20,7 +20,7 @@ def read_rdf(sources, infmt):
         if source == '-':
             f = sys.stdin
         else:
-            f = open(source, 'r')
+            f = open(source, 'r', encoding='utf-8-sig')
 
         if infmt:
             fmt = infmt
