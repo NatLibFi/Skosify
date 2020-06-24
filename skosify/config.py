@@ -135,7 +135,7 @@ def expand_curielike(namespaces, curie):
         nsvalue = namespaces[ns]
         try:
             return URIRef(nsvalue.term(localpart))
-        except Exception:
+        except TypeError:
             return URIRef(str(nsvalue) + localpart)
     else:
         logging.warning("Unknown namespace prefix %s", ns)
