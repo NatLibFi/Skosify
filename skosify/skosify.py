@@ -68,7 +68,7 @@ def in_general_ns(uri):
     RDFSuri = RDFS.uri
 
     for ns in (RDFuri, RDFSuri, OWL, SKOS, DC):
-        if uri.startswith(ns):
+        if uri.startswith(str(ns)):
             return True
     return False
 
