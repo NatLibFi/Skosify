@@ -18,7 +18,7 @@ the SKOS specification and related best practices.
 Installation
 ============
 
-Skosify requires Python 2.6 or newer.
+Skosify requires Python 2.7 or 3.6+.
 
 .. code-block:: console
 
