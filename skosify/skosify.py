@@ -171,7 +171,7 @@ def create_concept_scheme(rdf, ns, lname=''):
         for p, o in rdf.predicate_objects(ont):
             prot = URIRef(
                 'http://protege.stanford.edu/plugins/owl/protege#')
-            if p.startswith(prot):
+            if p.startswith(str(prot)):
                 rdf.remove((ont, p, o))
         # move remaining properties (dc:title etc.) of the owl:Ontology into
         # the skos:ConceptScheme
@@ -585,7 +585,7 @@ def cleanup_classes(rdf):
     for t in (OWL.Class, RDFS.Class):
         for cl in rdf.subjects(RDF.type, t):
             # SKOS classes may be safely removed
-            if cl.startswith(SKOS):
+            if cl.startswith(str(SKOS)):
                 logging.debug("removing SKOS class definition: %s", cl)
                 replace_subject(rdf, cl, None)
                 continue
@@ -621,12 +621,12 @@ def cleanup_properties(rdf):
               OWL.SymmetricProperty, OWL.TransitiveProperty,
               OWL.InverseFunctionalProperty, OWL.FunctionalProperty):
         for prop in rdf.subjects(RDF.type, t):
-            if prop.startswith(SKOS):
+            if prop.startswith(str(SKOS)):
                 logging.debug(
                     "removing SKOS property definition: %s", prop)
                 replace_subject(rdf, prop, None)
                 continue
-            if prop.startswith(DC):
+            if prop.startswith(str(DC)):
                 logging.debug("removing DC property definition: %s", prop)
                 replace_subject(rdf, prop, None)
                 continue
