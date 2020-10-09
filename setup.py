@@ -19,10 +19,11 @@ setup(name='skosify',
       long_description=README,
       classifiers=[
           'Programming Language :: Python',
-          'Programming Language :: Python :: 2.6',
           'Programming Language :: Python :: 2.7',
-          'Programming Language :: Python :: 3.2',
-          'Programming Language :: Python :: 3.3'
+          'Programming Language :: Python :: 3.4',
+          'Programming Language :: Python :: 3.5',
+          'Programming Language :: Python :: 3.6',
+          'Programming Language :: Python :: 3.7',
       ],
       keywords='rdf skos',
       author='Osma Suominen',
@@ -31,7 +32,7 @@ setup(name='skosify',
       license='MIT',
       install_requires=['rdflib'],
       setup_requires=['rdflib>=3.0.0', 'pytest-runner>=2.9'],
-      tests_require=['pytest', 'pytest-pep8', 'pytest-cov', 'pytest-catchlog'],
+      tests_require=['pytest<6.0.0', 'pytest-pep8', 'pytest-cov', 'pytest-catchlog'],
       packages=['skosify', 'skosify.rdftools'],
       entry_points={'console_scripts': ['skosify=skosify.cli:main']}
       )

@@ -5,7 +5,9 @@ import time
 import logging
 import datetime
 
-from rdflib import Graph, URIRef, BNode, Literal, Namespace, RDF, RDFS
+from rdflib import Graph, URIRef, BNode, Literal
+from rdflib.namespace import Namespace, RDF, RDFS, OWL, DC, DCTERMS, XSD, SKOS
+from .rdftools.namespace import SKOSEXT
 from .rdftools import (
     read_rdf,
     replace_subject,
@@ -13,21 +15,11 @@ from .rdftools import (
     replace_object,
     replace_uri,
     delete_uri,
-    localname,
-    find_prop_overlap
+    localname
 )
 
 from .config import Config
-from . import infer
-
-
-# namespace defs
-SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
-SKOSEXT = Namespace("http://purl.org/finnonto/schema/skosext#")
-OWL = Namespace("http://www.w3.org/2002/07/owl#")
-DC = Namespace("http://purl.org/dc/elements/1.1/")
-DCT = Namespace("http://purl.org/dc/terms/")
-XSD = Namespace("http://www.w3.org/2001/XMLSchema#")
+from . import infer, check
 
 
 def mapping_get(uri, mapping):
@@ -76,7 +68,7 @@ def in_general_ns(uri):
     RDFSuri = RDFS.uri
 
     for ns in (RDFuri, RDFSuri, OWL, SKOS, DC):
-        if uri.startswith(ns):
+        if uri.startswith(str(ns)):
             return True
     return False
 
@@ -209,8 +201,8 @@ def initialize_concept_scheme(rdf, cs, label, language, set_modified):
 
     if set_modified:
         curdate = datetime.datetime.utcnow().replace(microsecond=0).isoformat() + 'Z'
-        rdf.remove((cs, DCT.modified, None))
-        rdf.add((cs, DCT.modified, Literal(curdate, datatype=XSD.dateTime)))
+        rdf.remove((cs, DCTERMS.modified, None))
+        rdf.add((cs, DCTERMS.modified, Literal(curdate, datatype=XSD.dateTime)))
 
 
 def transform_sparql_update(rdf, update_query):
@@ -519,33 +511,8 @@ def enrich_relations(rdf, enrich_mappings, use_narrower, use_transitive):
     # 1. first enrich mapping relationships (because they affect regular ones)
 
     if enrich_mappings:
-
-        # relatedMatch goes both ways
-        for s, o in rdf.subject_objects(SKOS.relatedMatch):
-            rdf.add((s, SKOS.related, o))
-            rdf.add((o, SKOS.related, s))
-            rdf.add((o, SKOS.relatedMatch, s))
-
-        # exactMatch goes both ways
-        for s, o in rdf.subject_objects(SKOS.exactMatch):
-            rdf.add((o, SKOS.exactMatch, s))
-
-        # closeMatch goes both ways
-        for s, o in rdf.subject_objects(SKOS.closeMatch):
-            rdf.add((o, SKOS.closeMatch, s))
-
-        # broadMatch -> narrowMatch
-        if use_narrower:
-            for s, o in rdf.subject_objects(SKOS.broadMatch):
-                rdf.add((s, SKOS.broader, o))
-                rdf.add((o, SKOS.narrowMatch, s))
-                rdf.add((o, SKOS.narrower, s))
-        # narrowMatch -> broadMatch
-        for s, o in rdf.subject_objects(SKOS.narrowMatch):
-            rdf.add((o, SKOS.broadMatch, s))
-            rdf.add((o, SKOS.broader, s))
-            if not use_narrower:
-                rdf.remove((s, SKOS.narrowMatch, o))
+        infer.skos_symmetric_mappings(rdf)
+        infer.skos_hierarchical_mappings(rdf, use_narrower)
 
     # 2. then enrich regular relationships
 
@@ -738,156 +705,34 @@ def cleanup_unreachable(rdf):
 
 
 def check_labels(rdf, preflabel_policy):
-    # check that resources have only one prefLabel per language
-    resources = set(
-        (res for res, label in rdf.subject_objects(SKOS.prefLabel)))
-    for res in sorted(resources):
-        prefLabels = {}
-        for label in rdf.objects(res, SKOS.prefLabel):
-            lang = label.language
-            if lang not in prefLabels:
-                prefLabels[lang] = []
-            prefLabels[lang].append(label)
-        for lang, labels in prefLabels.items():
-            if len(labels) > 1:
-                if preflabel_policy == 'all':
-                    logging.warning(
-                        "Resource %s has more than one prefLabel@%s, "
-                        "but keeping all of them due to preflabel-policy=all.",
-                        res, lang)
-                    continue
-
-                if preflabel_policy == 'shortest':
-                    chosen = sorted(sorted(labels), key=len)[0]
-                elif preflabel_policy == 'longest':
-                    chosen = sorted(sorted(labels), key=len)[-1]
-                else:
-                    logging.critical(
-                        "Unknown preflabel-policy: %s", preflabel_policy)
-                    sys.exit(1)
-
-                logging.warning(
-                    "Resource %s has more than one prefLabel@%s: "
-                    "choosing %s (policy: %s)",
-                    res, lang, chosen, preflabel_policy)
-                for label in labels:
-                    if label != chosen:
-                        rdf.remove((res, SKOS.prefLabel, label))
-                        rdf.add((res, SKOS.altLabel, label))
-
-    # check overlap between disjoint label properties
-    for res, label in find_prop_overlap(rdf, SKOS.prefLabel, SKOS.altLabel):
-        logging.warning(
-            "Resource %s has '%s'@%s as both prefLabel and altLabel; "
-            "removing altLabel",
-            res, label, label.language)
-        rdf.remove((res, SKOS.altLabel, label))
-    for res, label in find_prop_overlap(rdf, SKOS.prefLabel, SKOS.hiddenLabel):
-        logging.warning(
-            "Resource %s has '%s'@%s as both prefLabel and hiddenLabel; "
-            "removing hiddenLabel",
-            res, label, label.language)
-        rdf.remove((res, SKOS.hiddenLabel, label))
-    for res, label in find_prop_overlap(rdf, SKOS.altLabel, SKOS.hiddenLabel):
-        logging.warning(
-            "Resource %s has '%s'@%s as both altLabel and hiddenLabel; "
-            "removing hiddenLabel",
-            res, label, label.language)
-        rdf.remove((res, SKOS.hiddenLabel, label))
-
-
-def check_hierarchy_visit(rdf, node, parent, break_cycles, status):
-    if status.get(node) is None:
-        status[node] = 1  # entered
-        for child in sorted(rdf.subjects(SKOS.broader, node)):
-            check_hierarchy_visit(
-                rdf, child, node, break_cycles, status)
-        status[node] = 2  # set this node as completed
-    elif status.get(node) == 1:  # has been entered but not yet done
-        if break_cycles:
-            logging.info("Hierarchy cycle removed at %s -> %s",
-                         localname(parent), localname(node))
-            rdf.remove((node, SKOS.broader, parent))
-            rdf.remove((node, SKOS.broaderTransitive, parent))
-            rdf.remove((node, SKOSEXT.broaderGeneric, parent))
-            rdf.remove((node, SKOSEXT.broaderPartitive, parent))
-            rdf.remove((parent, SKOS.narrower, node))
-            rdf.remove((parent, SKOS.narrowerTransitive, node))
-        else:
-            logging.info(
-                "Hierarchy cycle detected at %s -> %s, "
-                "but not removed because break_cycles is not active",
-                localname(parent), localname(node))
-    elif status.get(node) == 2:  # is completed already
-        pass
+    """Check that resources have only one prefLabel per language (S14)
+    and check overlap between disjoint label properties (S13)."""
+    check.preflabel_uniqueness(rdf, preflabel_policy)
+    check.label_overlap(rdf, True)
 
 
 def check_hierarchy(rdf, break_cycles, keep_related, mark_top_concepts,
                     eliminate_redundancy):
-    # check for cycles in the skos:broader hierarchy
-    # using a recursive depth first search algorithm
+    """Check for, and optionally fix, problems in the skos:broader hierarchy
+    using a recursive depth first search algorithm.
+
+    :param Graph rdf: An rdflib.graph.Graph object.
+    :param bool fix_cycles: Break cycles.
+    :param bool fix_disjoint_relations: Remoe skos:related overlapping with
+        skos:broaderTransitive.
+    :param bool fix_redundancy: Remove skos:broader between two concepts otherwise
+        connected by skos:broaderTransitive.
+    """
     starttime = time.time()
 
-    top_concepts = sorted(rdf.subject_objects(SKOS.hasTopConcept))
-    status = {}
-    for cs, root in top_concepts:
-        check_hierarchy_visit(
-            rdf, root, None, break_cycles, status=status)
-    # double check that all concepts were actually visited in the search,
-    # and visit remaining ones if necessary
-    recheck_top_concepts = False
-    for conc in sorted(rdf.subjects(RDF.type, SKOS.Concept)):
-        if conc not in status:
-            recheck_top_concepts = True
-            check_hierarchy_visit(
-                rdf, conc, None, break_cycles, status=status)
-    if recheck_top_concepts:
+    if check.hierarchy_cycles(rdf, break_cycles):
         logging.info(
             "Some concepts not reached in initial cycle detection. "
             "Re-checking for loose concepts.")
         setup_top_concepts(rdf, mark_top_concepts)
 
-    # check overlap between disjoint semantic relations
-    # related and broaderTransitive
-    for conc1, conc2 in sorted(rdf.subject_objects(SKOS.related)):
-        if conc2 in sorted(rdf.transitive_objects(conc1, SKOS.broader)):
-            if keep_related:
-                logging.warning(
-                    "Concepts %s and %s connected by both "
-                    "skos:broaderTransitive and skos:related, "
-                    "but keeping it because keep_related is enabled",
-                    conc1, conc2)
-            else:
-                logging.warning(
-                    "Concepts %s and %s connected by both "
-                    "skos:broaderTransitive and skos:related, "
-                    "removing skos:related",
-                    conc1, conc2)
-                rdf.remove((conc1, SKOS.related, conc2))
-                rdf.remove((conc2, SKOS.related, conc1))
-
-    # check for hierarchical redundancy and eliminate it, if configured to do
-    # so
-    for conc, parent1 in rdf.subject_objects(SKOS.broader):
-        for parent2 in rdf.objects(conc, SKOS.broader):
-            if parent1 == parent2:
-                continue  # must be different
-            if parent2 in rdf.transitive_objects(parent1, SKOS.broader):
-                if eliminate_redundancy:
-                    logging.warning(
-                        "Eliminating redundant hierarchical relationship: "
-                        "%s skos:broader %s",
-                        conc, parent2)
-                    rdf.remove((conc, SKOS.broader, parent2))
-                    rdf.remove((conc, SKOS.broaderTransitive, parent2))
-                    rdf.remove((parent2, SKOS.narrower, conc))
-                    rdf.remove((parent2, SKOS.narrowerTransitive, conc))
-                else:
-                    logging.warning(
-                        "Redundant hierarchical relationship "
-                        "%s skos:broader %s found, but not eliminated "
-                        "because eliminate_redundancy is not set",
-                        conc, parent2)
+    check.disjoint_relations(rdf, not keep_related)
+    check.hierarchical_redundancy(rdf, eliminate_redundancy)
 
     endtime = time.time()
     logging.debug("check_hierarchy took %f seconds", (endtime - starttime))

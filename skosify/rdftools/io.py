@@ -20,7 +20,11 @@ def read_rdf(sources, infmt):
         if source == '-':
             f = sys.stdin
         else:
-            f = open(source, 'r')
+            if sys.version_info[0] >= 3:
+                # Python 3+ - force UTF-8
+                f = open(source, 'r', encoding='utf-8-sig')
+            else:
+                f = open(source, 'r')
 
         if infmt:
             fmt = infmt
@@ -42,7 +46,9 @@ def read_rdf(sources, infmt):
 
 def write_rdf(rdf, filename, fmt):
     if filename == '-':
-        out = sys.stdout
+        # In Python 3 raw bytes must be written to stdout.buffer
+        # This works in Python 2.7 as well
+        out = sys.stdout.buffer
     else:
         out = open(filename, 'wb')
 

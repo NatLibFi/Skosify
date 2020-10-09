@@ -5,6 +5,9 @@ import logging
 import sys
 import argparse
 from rdflib import URIRef, Namespace, RDF, RDFS
+from io import StringIO
+from copy import copy
+from rdflib.namespace import URIRef, Namespace, RDF, RDFS, OWL, SKOS, DC, DCTERMS, XSD
 
 # import for both Python 2 and Python 3
 try:
@@ -16,27 +19,44 @@ except ImportError:
 DEFAULT_NAMESPACES = {
     'rdf': RDF,
     'rdfs': RDFS,
-    'owl': Namespace("http://www.w3.org/2002/07/owl#"),
-    'skos': Namespace("http://www.w3.org/2004/02/skos/core#"),
-    'dc': Namespace("http://purl.org/dc/elements/1.1/"),
-    'dct': Namespace("http://purl.org/dc/terms/"),
-    'xsd': Namespace("http://www.w3.org/2001/XMLSchema#"),
+    'owl': OWL,
+    'skos': SKOS,
+    'dc': DC,
+    'dct': DCTERMS,
+    'xsd': XSD,
 }
 
+DEFAULT_SECTIONS = u"""
+[namespaces]
 
-def config(filename=None):
-    """Get default configuration and optional settings from config file."""
-    return vars(Config(filename))
+[types]
+
+[literals]
+
+[relations]
+
+[options]
+
+"""
+
+
+def config(file=None):
+    """Get default configuration and optional settings from config file.
+
+    - file: can be a filename or a file object
+    """
+    return vars(Config(file))
 
 
 class Config(object):
     """Internal class to store and access configuration."""
 
-    def __init__(self, filename=None):
-        """Create a new config object and possibly read from config file."""
+    def __init__(self, file=None):
+        """Create a new config object and read from config file if given."""
 
         # default options
         self.from_format = None
+        self.to_format = None
         self.mark_top_concepts = True
         self.narrower = True
         self.transitive = False
@@ -63,26 +83,41 @@ class Config(object):
         self.relations = {}
 
         # namespaces
-        self.namespaces = DEFAULT_NAMESPACES
+        self.namespaces = copy(DEFAULT_NAMESPACES)
 
-        if filename is not None:
-            self.read_file(filename)
+        if file is not None:
+            self.read_and_parse_config_file(file)
 
-    def read_file(self, filename):
-        """Read configuration from file and update config object."""
-
+    def read_and_parse_config_file(self, file):
         cfgparser = ConfigParser()
-
         # force case-sensitive handling of option names
-        cfgparser.optionxform = str
+        cfgparser.optionxform = lambda x: x
+        # Add empty defaults to avoid NoSectionError if some sections are missing
+        with StringIO(DEFAULT_SECTIONS) as defaults_fp:
+            self.read_file(cfgparser, defaults_fp)
+        # Then read the config file
+        self.read_file(cfgparser, file)
+        self.parse_config(cfgparser)
 
-        # complains if open failed
-        with open(filename) as fp:
-            cfgparser.readfp(fp)
+    def read_file(self, cfgparser, file):
+        """Read configuration from file."""
+
+        if hasattr(file, 'readline'):
+            # we have a file object
+            if sys.version_info >= (3, 2):
+                cfgparser.read_file(file)  # Added in Python 3.2
+            else:
+                cfgparser.readfp(file)  # Deprecated since Python 3.2
+
+        else:
+            # we have a file name
+            cfgparser.read(file)
+
+    def parse_config(self, cfgparser):
 
         # parse namespaces from configuration file
         for prefix, uri in cfgparser.items('namespaces'):
-            self.namespaces[prefix] = URIRef(uri)
+            self.namespaces[prefix] = Namespace(uri)
 
         # parse types from configuration file
         for key, val in cfgparser.items('types'):
@@ -117,7 +152,8 @@ def expand_curielike(namespaces, curie):
 
     if curie == '':
         return None
-    if sys.version < '3':  # Python 2 ConfigParser reads raw byte strings
+    if sys.version < '3' and not isinstance(curie, type(u'')):
+        # Python 2 ConfigParser gives raw byte strings
         curie = curie.decode('UTF-8')  # ...make those into Unicode objects
 
     if curie.startswith('[') and curie.endswith(']'):
