@@ -92,8 +92,8 @@ def hierarchical_redundancy(rdf, fix=False):
     :param bool fix: Fix the problem by removing skos:broader relations between
         concepts that are otherwise connected by skos:broaderTransitive.
     """
-    for conc, parent1 in rdf.subject_objects(SKOS.broader):
-        for parent2 in rdf.objects(conc, SKOS.broader):
+    for conc, parent1 in sorted(rdf.subject_objects(SKOS.broader)):
+        for parent2 in sorted(rdf.objects(conc, SKOS.broader)):
             if parent1 == parent2:
                 continue  # must be different
             if parent2 in rdf.transitive_objects(parent1, SKOS.broader):
