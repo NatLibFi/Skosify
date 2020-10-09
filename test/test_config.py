@@ -30,5 +30,17 @@ def test_empty_config_file():
     cfg.close()
 
 
+def test_config_file_with_closed_namespace():
+    cfg = StringIO()
+    cfg.write(u'''
+[literals]
+rdfs.comment_EN=rdfs.comment
+''')
+    cfg.seek(0)
+    config = skosify.config(cfg)
+    assert set(config['namespaces'].keys()) == set(['owl', 'rdf', 'xsd', 'rdfs', 'dct', 'skos', 'dc'])
+    cfg.close()
+
+
 if __name__ == '__main__':
     unittest.main()
