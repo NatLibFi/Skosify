@@ -168,11 +168,7 @@ def expand_curielike(namespaces, curie):
         return curie
 
     if ns in namespaces:
-        nsvalue = namespaces[ns]
-        try:
-            return URIRef(nsvalue.term(localpart))
-        except TypeError:
-            return URIRef(str(nsvalue) + localpart)
+        return URIRef(str(namespaces[ns]) + localpart)
     else:
         logging.warning("Unknown namespace prefix %s", ns)
         return URIRef(curie)
