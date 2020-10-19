@@ -78,7 +78,7 @@ Author and Contributors
 -  Osma Suominen
 -  Jakob Voß
 -  Dan Michael O. Heggø
--  Sini Pessala
+-  Alex Kourijoki
 
 See also
 ========
