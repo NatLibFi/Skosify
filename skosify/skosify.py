@@ -211,7 +211,7 @@ def transform_sparql_update(rdf, update_query):
     logging.debug("performing SPARQL Update transformation")
 
     if update_query[0] == '@':  # actual query should be read from file
-        update_query = file(update_query[1:]).read()
+        update_query = open(update_query[1:]).read()
 
     logging.debug("update query: %s", update_query)
     rdf.update(update_query)
@@ -223,7 +223,7 @@ def transform_sparql_construct(rdf, construct_query):
     logging.debug("performing SPARQL CONSTRUCT transformation")
 
     if construct_query[0] == '@':  # actual query should be read from file
-        construct_query = file(construct_query[1:]).read()
+        construct_query = open(construct_query[1:]).read()
 
     logging.debug("CONSTRUCT query: %s", construct_query)
 
