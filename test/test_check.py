@@ -115,3 +115,61 @@ def test_preflabel_uniqueness():
     assert (a, SKOS.prefLabel, Literal('short', 'en')) in rdf
     assert (a, SKOS.prefLabel, Literal('short', 'nb')) in rdf
     assert (a, SKOS.altLabel, Literal('longer', 'en')) in rdf
+
+
+def test_preflabel_uniqueness_longest():
+    rdf = Graph()
+    a = BNode()
+
+    rdf.add((a, RDF.type, SKOS.Concept))
+    rdf.add((a, SKOS.prefLabel, Literal('short', 'en')))  # remove
+    rdf.add((a, SKOS.prefLabel, Literal('longer', 'en')))  # keep
+    rdf.add((a, SKOS.prefLabel, Literal('short', 'nb')))  # keep
+
+    len_before = len(rdf)
+
+    skosify.check.preflabel_uniqueness(rdf, policy='longest')
+    assert len(rdf) == len_before
+    assert (a, SKOS.prefLabel, Literal('short', 'nb')) in rdf
+    assert (a, SKOS.prefLabel, Literal('longer', 'en')) in rdf
+    assert (a, SKOS.altLabel, Literal('short', 'en')) in rdf
+
+
+def test_preflabel_uniqueness_shortest_lowercase():
+    rdf = Graph()
+    a = BNode()
+
+    rdf.add((a, RDF.type, SKOS.Concept))
+    rdf.add((a, SKOS.prefLabel, Literal('short', 'en')))  # keep
+    rdf.add((a, SKOS.prefLabel, Literal('Short', 'en')))  # remove
+    rdf.add((a, SKOS.prefLabel, Literal('longer', 'en')))  # remove
+    rdf.add((a, SKOS.prefLabel, Literal('Longer', 'en')))  # remove
+
+    len_before = len(rdf)
+
+    skosify.check.preflabel_uniqueness(rdf, policy=['shortest', 'lowercase'])
+    assert len(rdf) == len_before
+    assert (a, SKOS.prefLabel, Literal('short', 'en')) in rdf
+    assert (a, SKOS.altLabel, Literal('Short', 'en')) in rdf
+    assert (a, SKOS.altLabel, Literal('longer', 'en')) in rdf
+    assert (a, SKOS.altLabel, Literal('Longer', 'en')) in rdf
+
+
+def test_preflabel_uniqueness_shortest_uppercase():
+    rdf = Graph()
+    a = BNode()
+
+    rdf.add((a, RDF.type, SKOS.Concept))
+    rdf.add((a, SKOS.prefLabel, Literal('short', 'en')))  # remove
+    rdf.add((a, SKOS.prefLabel, Literal('Short', 'en')))  # keep
+    rdf.add((a, SKOS.prefLabel, Literal('longer', 'en')))  # remove
+    rdf.add((a, SKOS.prefLabel, Literal('Longer', 'en')))  # remove
+
+    len_before = len(rdf)
+
+    skosify.check.preflabel_uniqueness(rdf, policy=['shortest', 'uppercase'])
+    assert len(rdf) == len_before
+    assert (a, SKOS.prefLabel, Literal('Short', 'en')) in rdf
+    assert (a, SKOS.altLabel, Literal('short', 'en')) in rdf
+    assert (a, SKOS.altLabel, Literal('longer', 'en')) in rdf
+    assert (a, SKOS.altLabel, Literal('Longer', 'en')) in rdf

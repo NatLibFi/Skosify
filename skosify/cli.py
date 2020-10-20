@@ -81,7 +81,9 @@ def get_option_parser(defaults):
     group.add_option('-p', '--preflabel-policy', type='string',
                      help='Policy for handling multiple prefLabels '
                           'with the same language tag. '
-                          'Possible values: shortest, longest, all.')
+                          'Possible values: shortest, longest, lowercase, '
+                          'uppercase, all. Can also be a comma-separated list '
+                          'of policies to apply in order.')
     group.add_option('--set-modified', dest="set_modified",
                      action="store_true",
                      help='Set modification date on the ConceptScheme')

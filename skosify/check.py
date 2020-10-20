@@ -120,12 +120,35 @@ def preflabel_uniqueness(rdf, policy='all'):
 
     :param Graph rdf: An rdflib.graph.Graph object.
     :param str policy: Policy for deciding which value to keep as prefLabel
-        when multiple prefLabels are found. Possible values are 'shortest'
-        (keep the shortest label), 'longest' (keep the longest label) or 'all'
-        (keep all, just log the problems).
+        when multiple prefLabels are found.  Possible values are 'shortest'
+        (keep the shortest label), 'longest' (keep the longest label),
+        'uppercase' (prefer uppercase), 'lowercase' (prefer uppercase) or
+        'all' (keep all, just log the problems).  Alternatively, a list of
+        policies to apply in order, such as ['shortest', 'lowercase'], may
+        be used.
     """
     resources = set(
         (res for res, label in rdf.subject_objects(SKOS.prefLabel)))
+
+    policy_fn = {
+        'shortest': len,
+        'longest': lambda x: -len(x),
+        'uppercase': lambda x: int(x[0].islower()),
+        'lowercase': lambda x: int(x[0].isupper())
+    }
+
+    if type(policy) not in (list, tuple):
+        policies = policy.split(',')
+    else:
+        policies = policy
+
+    for p in policies:
+        if p not in policy_fn:
+            logging.critical("Unknown preflabel-policy: %s", policy)
+            return
+
+    def key_fn(label):
+        return [policy_fn[p](label) for p in policies]
 
     for res in sorted(resources):
         prefLabels = {}
@@ -136,26 +159,19 @@ def preflabel_uniqueness(rdf, policy='all'):
             prefLabels[lang].append(label)
         for lang, labels in prefLabels.items():
             if len(labels) > 1:
-                if policy == 'all':
+                if policies[0] == 'all':
                     logging.warning(
                         "Resource %s has more than one prefLabel@%s, "
                         "but keeping all of them due to preflabel-policy=all.",
                         res, lang)
                     continue
 
-                if policy == 'shortest':
-                    chosen = sorted(sorted(labels), key=len)[0]
-                elif policy == 'longest':
-                    chosen = sorted(sorted(labels), key=len)[-1]
-                else:
-                    logging.critical(
-                        "Unknown preflabel-policy: %s", policy)
-                    sys.exit(1)
+                chosen = sorted(labels, key=key_fn)[0]
 
                 logging.warning(
                     "Resource %s has more than one prefLabel@%s: "
                     "choosing %s (policy: %s)",
-                    res, lang, chosen, policy)
+                    res, lang, chosen, str(policy))
                 for label in labels:
                     if label != chosen:
                         rdf.remove((res, SKOS.prefLabel, label))
