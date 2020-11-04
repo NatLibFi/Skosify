@@ -5,6 +5,7 @@ import logging
 import sys
 
 from rdflib import Graph
+from rdflib.util import guess_format
 
 
 def read_rdf(sources, infmt):
@@ -30,13 +31,15 @@ def read_rdf(sources, infmt):
             fmt = infmt
         else:
             # determine format based on file extension
-            fmt = 'xml'  # default
-            if source.endswith('n3'):
-                fmt = 'n3'
-            if source.endswith('ttl'):
-                fmt = 'n3'
-            if source.endswith('nt'):
-                fmt = 'nt'
+            fmt = guess_format(source)
+            if not fmt:
+                fmt = 'xml'  # default
+
+        if fmt == 'nt' and sys.version_info[0] >= 3:
+            # Avoid using N-Triples parser on Python 3
+            # due to rdflib issue https://github.com/RDFLib/rdflib/issues/1144
+            # A workaround is to use N3 parser instead
+            fmt = 'n3'
 
         logging.debug("Parsing input file %s (format: %s)", source, fmt)
         rdf.parse(f, format=fmt)
