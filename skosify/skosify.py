@@ -142,7 +142,7 @@ def create_concept_scheme(rdf, ns, lname=''):
                 "No skos:ConceptScheme or owl:Ontology found. "
                 "Using namespace auto-detection for creating concept scheme.")
             ns = detect_namespace(rdf)
-        elif ont[:-1] in ['/', '#', ':']:
+        elif ont[-1:] in ['/', '#', ':']:
             ns = ont
         else:
             ns = ont + '/'
