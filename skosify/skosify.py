@@ -79,24 +79,18 @@ def get_concept_scheme(rdf):
     Returns None if no skos:ConceptScheme is present.
     """
     # add explicit type
-    for s, o in rdf.subject_objects(SKOS.inScheme):
+    for s, o in sorted(rdf.subject_objects(SKOS.inScheme)):
         if not isinstance(o, Literal):
             rdf.add((o, RDF.type, SKOS.ConceptScheme))
         else:
             logging.warning(
                 "Literal value %s for skos:inScheme detected, ignoring.", o)
-    css = list(rdf.subjects(RDF.type, SKOS.ConceptScheme))
+    css = sorted(rdf.subjects(RDF.type, SKOS.ConceptScheme))
+    cs = next(iter(css), None)
     if len(css) > 1:
-        css.sort()
-        cs = css[0]
         logging.warning(
             "Multiple concept schemes found. "
             "Selecting %s as default concept scheme.", cs)
-    elif len(css) == 1:
-        cs = css[0]
-    else:
-        cs = None
-
     return cs
 
 
@@ -135,24 +129,20 @@ def create_concept_scheme(rdf, ns, lname=''):
     ont = None
     if not ns:
         # see if there's an owl:Ontology and use that to determine namespace
-        onts = list(rdf.subjects(RDF.type, OWL.Ontology))
+        onts = sorted(rdf.subjects(RDF.type, OWL.Ontology))
+        ont = next(iter(onts), None)
+
         if len(onts) > 1:
-            onts.sort()
-            ont = onts[0]
             logging.warning(
                 "Multiple owl:Ontology instances found. "
                 "Creating concept scheme from %s.", ont)
-        elif len(onts) == 1:
-            ont = onts[0]
-        else:
-            ont = None
 
         if not ont:
             logging.info(
                 "No skos:ConceptScheme or owl:Ontology found. "
                 "Using namespace auto-detection for creating concept scheme.")
             ns = detect_namespace(rdf)
-        elif ont.endswith('/') or ont.endswith('#') or ont.endswith(':'):
+        elif ont[:-1] in ['/', '#', ':']:
             ns = ont
         else:
             ns = ont + '/'
@@ -244,7 +234,7 @@ def transform_concepts(rdf, typemap):
             continue
         types.add(o)
 
-    for t in types:
+    for t in sorted(types):
         if mapping_match(t, typemap):
             newval = mapping_get(t, typemap)
             newuris = [v[0] for v in newval]
@@ -273,7 +263,7 @@ def transform_literals(rdf, literalmap):
                    and (p in literalmap or not in_general_ns(p)):
                     props.add(p)
 
-    for p in props:
+    for p in sorted(props):
         if mapping_match(p, literalmap):
             newval = mapping_get(p, literalmap)
             newuris = [v[0] for v in newval]
@@ -298,7 +288,7 @@ def transform_relations(rdf, relationmap):
                    and (p in relationmap or not in_general_ns(p)):
                     props.add(p)
 
-    for p in props:
+    for p in sorted(props):
         if mapping_match(p, relationmap):
             newval = mapping_get(p, relationmap)
             logging.debug("transform relation %s -> %s", p, str(newval))
@@ -583,7 +573,7 @@ def cleanup_classes(rdf):
        unused classes. If a class is also a skos:Concept or skos:Collection,
        remove the 'classness' of it but leave the Concept/Collection."""
     for t in (OWL.Class, RDFS.Class):
-        for cl in rdf.subjects(RDF.type, t):
+        for cl in sorted(rdf.subjects(RDF.type, t)):
             # SKOS classes may be safely removed
             if cl.startswith(str(SKOS)):
                 logging.debug("removing SKOS class definition: %s", cl)
@@ -615,12 +605,12 @@ def cleanup_classes(rdf):
 def cleanup_properties(rdf):
     """Remove unnecessary property definitions.
 
-    Reemoves SKOS and DC property definitions and definitions of unused
+    Removes SKOS and DC property definitions and definitions of unused
     properties."""
     for t in (RDF.Property, OWL.DatatypeProperty, OWL.ObjectProperty,
               OWL.SymmetricProperty, OWL.TransitiveProperty,
               OWL.InverseFunctionalProperty, OWL.FunctionalProperty):
-        for prop in rdf.subjects(RDF.type, t):
+        for prop in sorted(rdf.subjects(RDF.type, t)):
             if prop.startswith(str(SKOS)):
                 logging.debug(
                     "removing SKOS property definition: %s", prop)
