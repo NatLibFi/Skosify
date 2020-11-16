@@ -126,7 +126,7 @@ def rdfs_properties(rdf):
                 superprops[s].add(sp)
 
     # add the superproperty relationships
-    for p, sps in superprops.items():
+    for p, sps in sorted(superprops.items()):
         logging.debug("setting superproperties: %s -> %s", p, str(sps))
         for s, o in rdf.subject_objects(p):
             for sp in sps:
