@@ -3,6 +3,9 @@
 
 import logging
 import time
+import locale
+import sys
+import re
 from rdflib.namespace import RDF, SKOS
 from .rdftools.namespace import SKOSEXT
 from .rdftools import localname, find_prop_overlap
@@ -120,17 +123,19 @@ def preflabel_uniqueness(rdf, policy='all'):
 
     :param Graph rdf: An rdflib.graph.Graph object.
     :param str policy: Policy for deciding which value to keep as prefLabel
-        when multiple prefLabels are found.  Possible values are 'shortest'
+        when multiple prefLabels are found.  Possible values are 'natural'
+        (alphanumerical sort that follows the language collation order of the literal), 'shortest'
         (keep the shortest label), 'longest' (keep the longest label),
         'uppercase' (prefer uppercase), 'lowercase' (prefer uppercase) or
         'all' (keep all, just log the problems).  Alternatively, a list of
         policies to apply in order, such as ['shortest', 'lowercase'], may
-        be used.
+        be used. Alphanumerical sorting is appended by default to any applicable list of policies to provide a deterministic tie-breaker.
     """
     resources = set(
         (res for res, label in rdf.subject_objects(SKOS.prefLabel)))
 
     policy_fn = {
+        'natural': locale.strxfrm,
         'shortest': len,
         'longest': lambda x: -len(x),
         'uppercase': lambda x: int(x[0].islower()),
@@ -157,6 +162,13 @@ def preflabel_uniqueness(rdf, policy='all'):
             if lang not in prefLabels:
                 prefLabels[lang] = []
             prefLabels[lang].append(label)
+
+        if 'natural' not in policies:
+            policies.append('natural')
+        if sys.version_info.major < 3:
+            reload(sys)
+            sys.setdefaultencoding('utf8')
+
         for lang, labels in prefLabels.items():
             if len(labels) > 1:
                 if policies[0] == 'all':
@@ -165,6 +177,10 @@ def preflabel_uniqueness(rdf, policy='all'):
                         "but keeping all of them due to preflabel-policy=all.",
                         res, lang)
                     continue
+                try:
+                    locale.setlocale(locale.LC_ALL, re.sub(r'\..*', '.UTF-8', locale.normalize(lang)))
+                except locale.Error as err:
+                    locale.setlocale(locale.LC_ALL, 'C')
 
                 chosen = sorted(labels, key=key_fn)[0]
 
