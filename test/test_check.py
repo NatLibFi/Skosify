@@ -173,3 +173,53 @@ def test_preflabel_uniqueness_shortest_uppercase():
     assert (a, SKOS.altLabel, Literal('short', 'en')) in rdf
     assert (a, SKOS.altLabel, Literal('longer', 'en')) in rdf
     assert (a, SKOS.altLabel, Literal('Longer', 'en')) in rdf
+
+
+def test_preflabel_uniqueness_alphanumeric():
+    rdf = Graph()
+    a = BNode()
+
+    rdf.add((a, RDF.type, SKOS.Concept))
+    rdf.add((a, SKOS.prefLabel, Literal('äaa', 'en')))  # keep
+    rdf.add((a, SKOS.prefLabel, Literal('Äba', 'en')))  # remove
+    rdf.add((a, SKOS.prefLabel, Literal('aab', 'en')))  # remove
+    rdf.add((a, SKOS.prefLabel, Literal('aba', 'en')))  # remove
+
+    rdf.add((a, SKOS.prefLabel, Literal('äa', 'fi')))  # remove
+    rdf.add((a, SKOS.prefLabel, Literal('Äb', 'fi')))  # remove
+    rdf.add((a, SKOS.prefLabel, Literal('aä', 'fi')))  # remove
+    rdf.add((a, SKOS.prefLabel, Literal('ab', 'fi')))  # keep
+
+    len_before = len(rdf)
+
+    skosify.check.preflabel_uniqueness(rdf, policy=['shortest'])
+    assert len(rdf) == len_before
+    assert (a, SKOS.prefLabel, Literal('äaa', 'en')) in rdf
+    assert (a, SKOS.altLabel, Literal('Äba', 'en')) in rdf
+    assert (a, SKOS.altLabel, Literal('aab', 'en')) in rdf
+    assert (a, SKOS.altLabel, Literal('aba', 'en')) in rdf
+
+    assert (a, SKOS.prefLabel, Literal('ab', 'fi')) in rdf
+    assert (a, SKOS.altLabel, Literal('äa', 'fi')) in rdf
+    assert (a, SKOS.altLabel, Literal('Äb', 'fi')) in rdf
+    assert (a, SKOS.altLabel, Literal('aä', 'fi')) in rdf
+
+
+def test_preflabel_uniqueness_alphanumeric2():
+    rdf = Graph()
+    a = BNode()
+
+    rdf.add((a, RDF.type, SKOS.Concept))
+    rdf.add((a, SKOS.prefLabel, Literal('AAa', 'en')))  # remove
+    rdf.add((a, SKOS.prefLabel, Literal('Aaa', 'en')))  # remove
+    rdf.add((a, SKOS.prefLabel, Literal('aaa', 'en')))  # keep
+    rdf.add((a, SKOS.prefLabel, Literal('Äää', 'en')))  # remove
+
+    len_before = len(rdf)
+
+    skosify.check.preflabel_uniqueness(rdf, policy=[])
+    assert len(rdf) == len_before
+    assert (a, SKOS.altLabel, Literal('AAa', 'en')) in rdf
+    assert (a, SKOS.altLabel, Literal('Aaa', 'en')) in rdf
+    assert (a, SKOS.prefLabel, Literal('aaa', 'en')) in rdf
+    assert (a, SKOS.altLabel, Literal('Äää', 'en')) in rdf
