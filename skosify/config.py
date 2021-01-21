@@ -76,6 +76,7 @@ class Config(object):
         self.infer = False
         self.update_query = None
         self.construct_query = None
+        self.post_update_query = None
 
         # mappings
         self.types = {}
