@@ -55,10 +55,18 @@ def get_option_parser(defaults):
     group.add_option('--construct-query', type='string',
                      help='SPARQL CONSTRUCT query. '
                      'This query is executed against the input '
-                     'data and the result graph is used as the '
-                     'actual input. '
+                     'data (after possible --update-query) and '
+                     'the result graph is used as the actual input. '
                      'The value can be either the actual query, '
                      'or "@filename".')
+    group.add_option('--post-update-query', type='string',
+                     help='SPARQL update query. '
+                     'This convenience query is executed against '
+                     'the output data before writing it. '
+                     'The value can be either the actual query, '
+                     'or "@filename". '
+                     'Use at your own risk - output may not be '
+                     'SKOS at all.')
     group.add_option('-I', '--infer', action="store_true",
                      help='Perform RDFS subclass/subproperty inference '
                           'before transforming input.')

@@ -823,6 +823,10 @@ def skosify(*sources, **config):
     # check for duplicate labels
     check_labels(voc, config.preflabel_policy)
 
+    logging.debug("Phase 10: Performing post update query")
+    if config.post_update_query is not None:
+        transform_sparql_update(voc, config.post_update_query)
+
     processtime = time.time()
 
     logging.debug("reading input file took  %d seconds",
@@ -830,6 +834,6 @@ def skosify(*sources, **config):
     logging.debug("processing took          %d seconds",
                   (processtime - inputtime))
 
-    logging.debug("Phase 10: Writing output")
+    logging.debug("Phase 11: Writing output")
 
     return voc
