@@ -64,8 +64,8 @@ def in_general_ns(uri):
     """Return True iff the URI is in a well-known general RDF namespace.
 
     URI namespaces considered well-known are RDF, RDFS, OWL, SKOS and DC."""
-    RDFuri = RDF.uri
-    RDFSuri = RDFS.uri
+    RDFuri = str(RDF)
+    RDFSuri = str(RDFS)
 
     for ns in (RDFuri, RDFSuri, OWL, SKOS, DC):
         if uri.startswith(str(ns)):
