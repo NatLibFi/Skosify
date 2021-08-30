@@ -9,11 +9,7 @@ from io import StringIO
 from copy import copy
 from rdflib.namespace import URIRef, Namespace, RDF, RDFS, OWL, SKOS, DC, DCTERMS, XSD
 
-# import for both Python 2 and Python 3
-try:
-    from configparser import ConfigParser
-except ImportError:
-    from ConfigParser import SafeConfigParser as ConfigParser
+from configparser import ConfigParser
 
 # default namespaces to register in the graph
 DEFAULT_NAMESPACES = {
@@ -105,11 +101,7 @@ class Config(object):
 
         if hasattr(file, 'readline'):
             # we have a file object
-            if sys.version_info >= (3, 2):
-                cfgparser.read_file(file)  # Added in Python 3.2
-            else:
-                cfgparser.readfp(file)  # Deprecated since Python 3.2
-
+            cfgparser.read_file(file)
         else:
             # we have a file name
             cfgparser.read(file)
@@ -153,9 +145,6 @@ def expand_curielike(namespaces, curie):
 
     if curie == '':
         return None
-    if sys.version < '3' and not isinstance(curie, type(u'')):
-        # Python 2 ConfigParser gives raw byte strings
-        curie = curie.decode('UTF-8')  # ...make those into Unicode objects
 
     if curie.startswith('[') and curie.endswith(']'):
         # decode SafeCURIE
