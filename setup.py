@@ -14,7 +14,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.rst')).read()
 
 setup(name='skosify',
-      version='2.2.1',  # Use bumpversion to update
+      version='2.3.0',  # Use bumpversion to update
       description='SKOS converter for RDFS/OWL/SKOS vocabularies.',
       long_description=README,
       classifiers=[
