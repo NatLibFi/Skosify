@@ -147,7 +147,7 @@ def preflabel_uniqueness(rdf, policy='all'):
             return
 
     def key_fn(label):
-        return [policy_fn[p](label) for p in policies]
+        return [policy_fn[p](label) for p in policies] + [str(label)]
 
     for res in sorted(resources):
         prefLabels = {}

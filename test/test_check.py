@@ -171,3 +171,35 @@ def test_preflabel_uniqueness_shortest_uppercase():
     assert (a, SKOS.altLabel, Literal('short', 'en')) in rdf
     assert (a, SKOS.altLabel, Literal('longer', 'en')) in rdf
     assert (a, SKOS.altLabel, Literal('Longer', 'en')) in rdf
+
+
+def test_preflabel_uniqueness_is_deterministic():
+    rdf = Graph()
+    a = BNode()
+
+    rdf.add((a, RDF.type, SKOS.Concept))
+    # all English labels have the same length, tie must be broken
+    rdf.add((a, SKOS.prefLabel, Literal('bab', 'en')))  # remove
+    rdf.add((a, SKOS.prefLabel, Literal('bba', 'en')))  # remove
+    rdf.add((a, SKOS.prefLabel, Literal('aab', 'en')))  # keep
+    rdf.add((a, SKOS.prefLabel, Literal('aba', 'en')))  # remove
+
+    # ditto for Finnish labels
+    rdf.add((a, SKOS.prefLabel, Literal('ba', 'fi')))  # remove
+    rdf.add((a, SKOS.prefLabel, Literal('bb', 'fi')))  # remove
+    rdf.add((a, SKOS.prefLabel, Literal('aa', 'fi')))  # keep
+    rdf.add((a, SKOS.prefLabel, Literal('ab', 'fi')))  # remove
+
+    len_before = len(rdf)
+
+    skosify.check.preflabel_uniqueness(rdf, policy=['shortest'])
+    assert len(rdf) == len_before
+    assert (a, SKOS.prefLabel, Literal('aab', 'en')) in rdf
+    assert (a, SKOS.altLabel, Literal('bab', 'en')) in rdf
+    assert (a, SKOS.altLabel, Literal('bba', 'en')) in rdf
+    assert (a, SKOS.altLabel, Literal('aba', 'en')) in rdf
+
+    assert (a, SKOS.prefLabel, Literal('aa', 'fi')) in rdf
+    assert (a, SKOS.altLabel, Literal('ba', 'fi')) in rdf
+    assert (a, SKOS.altLabel, Literal('bb', 'fi')) in rdf
+    assert (a, SKOS.altLabel, Literal('ab', 'fi')) in rdf
