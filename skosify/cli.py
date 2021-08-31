@@ -7,9 +7,6 @@ from .config import Config
 
 import optparse
 import logging
-import sys
-
-from rdflib import URIRef, Namespace, RDF, RDFS
 
 
 def get_option_parser(defaults):

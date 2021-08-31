@@ -1,6 +1,4 @@
 # encoding=utf-8
-import unittest
-import pytest
 from rdflib import Graph, BNode, Literal
 from rdflib.namespace import RDF, SKOS
 

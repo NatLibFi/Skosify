@@ -2,9 +2,6 @@
 """Store skosify configuration and read config file."""
 
 import logging
-import sys
-import argparse
-from rdflib import URIRef, Namespace, RDF, RDFS
 from io import StringIO
 from copy import copy
 from rdflib.namespace import URIRef, Namespace, RDF, RDFS, OWL, SKOS, DC, DCTERMS, XSD
