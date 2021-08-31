@@ -39,9 +39,9 @@ def mapping_get(uri, mapping):
             return v
     # 3. try to match local names with * prefix
     # try to match longest first, so sort the mapping by key length
-    l = list(mapping.items())
-    l.sort(key=lambda i: len(i[0]), reverse=True)
-    for k, v in l:
+    lst = list(mapping.items())
+    lst.sort(key=lambda i: len(i[0]), reverse=True)
+    for k, v in lst:
         if k[0] == '*' and ln.endswith(k[1:]):
             return v
     raise KeyError(uri)
@@ -54,7 +54,7 @@ def mapping_match(uri, mapping):
 
     """
     try:
-        val = mapping_get(uri, mapping)
+        _ = mapping_get(uri, mapping)
         return True
     except KeyError:
         return False
@@ -748,7 +748,7 @@ def skosify(*sources, **config):
     logging.debug("Phase 1: Parsing input files")
     try:
         voc = read_rdf(sources, config.from_format)
-    except:
+    except Exception:
         logging.critical("Parsing failed. Exception: %s",
                          str(sys.exc_info()[1]))
         sys.exit(1)

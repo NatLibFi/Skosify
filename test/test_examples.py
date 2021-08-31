@@ -19,8 +19,8 @@ def expect_rdf(expect, graph):
 
 @pytest.mark.parametrize('infile', glob.glob('examples/*.in.*'))
 def test_example(infile):
-    outfile = re.sub('\.in\.([^.]+)$', r'.out.\1', infile)
-    conffile = re.sub('\.in\.[^.]+$', r'.cfg', infile)
+    outfile = re.sub(r'\.in\.([^.]+)$', r'.out.\1', infile)
+    conffile = re.sub(r'\.in\.[^.]+$', r'.cfg', infile)
 
     if os.path.isfile(conffile):
         config = skosify.config(conffile)

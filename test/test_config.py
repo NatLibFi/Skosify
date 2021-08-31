@@ -1,9 +1,8 @@
 # encoding=utf-8
 import unittest
-import pytest
 import logging
 from io import StringIO
-from rdflib import URIRef, Namespace
+from rdflib import URIRef
 
 import skosify
 

@@ -2,7 +2,6 @@
 """Checks/fixes are bundled in one namespace."""
 
 import logging
-import time
 from rdflib.namespace import RDF, SKOS
 from .rdftools.namespace import SKOSEXT
 from .rdftools import localname, find_prop_overlap

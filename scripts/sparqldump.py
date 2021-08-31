@@ -99,11 +99,13 @@ def main():
     parser.add_option('-o', '--output', type='string', default='-',
                       help='Output file name. Default is "-" (stdout).')
     parser.add_option('-f', '--to-format', type='string', default='xml',
-                      help='Output format. Default is "xml". Possible values: xml, turtle. Not all endpoints will honor this setting.')
+                      help='Output format. Default is "xml". Possible values: xml, turtle. ' +
+                           'Not all endpoints will honor this setting.')
     parser.add_option('-g', '--graph', type='string',
                       help='Named graph to query. Default is none (i.e. use the default graph of the endpoint)')
     parser.add_option('-m', '--multiple', type='int',
-                      help='Perform multiple queries, with given number of triples each. Useful for endpoints that limit response size.')
+                      help='Perform multiple queries, with given number of triples each. ' +
+                           'Useful for endpoints that limit response size.')
     parser.add_option('-O', '--ordered', action='store_true',
                       help='Add ORDER BY in multiple mode. This may be heavy to process for the endpoint.')
     parser.add_option('-D', '--debug', action="store_true",
