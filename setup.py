@@ -30,7 +30,7 @@ setup(name='skosify',
       url='https://github.com/NatLibFi/Skosify',
       license='MIT',
       install_requires=['rdflib'],
-      setup_requires=['rdflib>=3.0.0,<6.0.0', 'pytest-runner>=2.9'],
+      setup_requires=['rdflib>=4.2.2', 'pytest-runner>=2.9'],
       tests_require=['pytest<6.0.0', 'pytest-pep8', 'pytest-cov', 'pytest-catchlog'],
       packages=['skosify', 'skosify.rdftools'],
       entry_points={'console_scripts': ['skosify=skosify.cli:main']}
